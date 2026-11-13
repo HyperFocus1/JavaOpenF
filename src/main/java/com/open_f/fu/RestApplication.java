@@ -4,7 +4,9 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import com.open_f.fu.account.AccountsBinder;
 import com.open_f.fu.chat.ChatsBinder;
-import com.open_f.fu.shared.SharedBinder;
+import com.open_f.fu.config.ApiExceptionMapper;
+import com.open_f.fu.config.JwtAuthenticationFilter;
+import com.open_f.fu.config.SharedBinder;
 import com.open_f.fu.workspace.WorkspacesBinder;
 
 import jakarta.ws.rs.ApplicationPath;
@@ -13,15 +15,17 @@ import jakarta.ws.rs.ApplicationPath;
  * Punto de arranque de la API: une los módulos. Es la única clase que conoce a todos.
  */
 @ApplicationPath("/api")
-public class RestConfig extends ResourceConfig {
+public class RestApplication extends ResourceConfig {
 
-    public RestConfig() {
+    public RestApplication() {
         packages(
                 "com.open_f.fu.account.api",
                 "com.open_f.fu.workspace.api",
                 "com.open_f.fu.chat.api",
-                "com.open_f.fu.shared.error",
-                "com.open_f.fu.shared.security");
+                "com.open_f.fu.shared.api");
+
+        register(ApiExceptionMapper.class);
+        register(JwtAuthenticationFilter.class);
 
         register(new SharedBinder());
         register(new AccountsBinder());

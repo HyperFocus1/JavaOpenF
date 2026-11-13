@@ -1,12 +1,49 @@
 # Historias de usuario — Sistema Kanban
 
-Alcance de la primera etapa: completar el Kanban para una plataforma que acompañará a personas desde su idea hasta un proyecto para portfolio, aprendizaje u otros objetivos propios. El [README](../README.md) describe el producto completo, con la entrada futura por agente, especificaciones Markdown, repositorio GitHub/GitLab y planificación asistida.
+Alcance de la primera etapa: completar el Kanban para una plataforma que acompañará a personas desde su idea hasta un proyecto para portfolio, aprendizaje u otros objetivos propios. El [README](../README.md) explica las tecnologías y cómo levantar la aplicación.
+
+En una etapa posterior, el usuario podrá explicar su idea a un agente, obtener especificaciones Markdown, elegir el nombre del proyecto desde el cliente, conectar un repositorio GitHub/GitLab y planificar el trabajo con asistencia. El producto conservará tecnologías utilizadas, decisiones, desafíos, errores, intentos, soluciones y aprendizajes para retomar el desarrollo con contexto y preparar una presentación respaldada por evidencias. Esa etapa P2 se abordará después de completar el Kanban P0 + P1; la base manual debe ser útil por sí misma.
 
 **Objetivo de aprendizaje:** estas historias definen qué construir y qué debe poder hacer el usuario. El desarrollo de las funcionalidades, las decisiones técnicas y su validación corresponden a los desarrolladores del equipo. La guía acompaña ese aprendizaje sin sustituir la implementación que realizarán.
 
 Un proyecto representa un tablero. El estado de una tarjeta se obtiene de su columna; el autor es quien la crea, mientras que el responsable es quien la atiende. P0 entrega la base operativa; P1 también debe completarse para cerrar el Kanban. El chat general y las ampliaciones P2 tienen seguimiento separado.
 
 `HU-00` a `HU-23` son las historias del Kanban. La primera entrega permite organizar el trabajo manualmente y conserva su historial operativo; no exige disponer de agente, repositorio conectado ni bitácora ampliada.
+
+## Reparto de tareas para el aprendizaje
+
+Se proponen ocho historias por persona. JoseCarlos se concentra en proyectos, columnas y flujo; Jair, en las tarjetas; Cristofer, en identidad, colaboración y actividad. La cantidad de historias no implica el mismo esfuerzo: se mantiene el orden P0 → P1 y se ajusta el trabajo al revisar cada entrega.
+
+Cada responsable diseña e implementa su historia, acuerda los contratos que afecten a otros y escribe sus pruebas como parte del aprendizaje. El revisor comprueba los criterios de aceptación y comenta la solución con el responsable. El único test incluido como ejemplo es [TaskServiceTest](../src/test/java/com/open_f/fu/workspace/service/TaskServiceTest.java); la cobertura del resto del sistema queda como trabajo del equipo.
+
+| Historia | Responsable | Revisión | Tareas de implementación |
+| --- | --- | --- | --- |
+| HU-00 — Cuenta y sesión | Cristofer | JoseCarlos | Completar registro, login/logout, edición y desactivación del perfil; validar credenciales y proteger datos privados. |
+| HU-01 — Crear tablero | JoseCarlos | Jair | Crear proyecto y columnas iniciales en una operación atómica; asignar propietario desde la sesión y definir la tarjeta de bienvenida. |
+| HU-02 — Administrar proyectos | JoseCarlos | Jair | Implementar listado paginado, búsqueda, detalle, edición y baja lógica con permisos. |
+| HU-03 — Consultar tablero | JoseCarlos | Jair | Construir la lectura de columnas y tarjetas con orden estable, columnas vacías y respuestas sin credenciales. |
+| HU-04 — Administrar columnas | JoseCarlos | Jair | Implementar creación, edición, orden y eliminación de columnas; trasladar sus tarjetas cuando corresponda. |
+| HU-05 — Gestionar tarjetas | Jair | Cristofer | Completar alta, consulta, edición y baja lógica de tarjetas; validar proyecto, columna, prioridad y códigos. |
+| HU-06 — Mover tarjetas | Jair | Cristofer | Persistir movimientos dentro de una columna y entre columnas; validar índices y conservar un orden consistente. |
+| HU-07 — Cambios simultáneos | JoseCarlos | Jair | Resolver conflictos de edición y orden; comprobar peticiones concurrentes sin pérdida ni duplicación de tarjetas. |
+| HU-08 — Colaboradores y roles | Cristofer | JoseCarlos | Implementar membresías, altas/bajas de colaboradores y la matriz de permisos de propietario, administrador y miembro. |
+| HU-09 — Propiedad y salida | Cristofer | JoseCarlos | Transferir propiedad y permitir la salida de colaboradores manteniendo un único propietario válido. |
+| HU-10 — Invitaciones | Cristofer | JoseCarlos | Implementar envío, consulta, aceptación, rechazo, cancelación y expiración de invitaciones, con validación de destinatario y rol. |
+| HU-11 — Responsables | Jair | Cristofer | Asignar y quitar responsables elegibles; conservar autoría y desasignar al retirar accesos. |
+| HU-12 — Etiquetas | Jair | Cristofer | Crear y mantener etiquetas por proyecto; aplicar/quitar asociaciones sin duplicados ni cruces entre proyectos. |
+| HU-13 — Búsqueda y filtros | Jair | Cristofer | Combinar búsqueda y filtros de tarjetas y proyectos sin alterar el orden ni exponer datos privados. |
+| HU-14 — Límites WIP | JoseCarlos | Jair | Configurar capacidad por columna y aplicar la regla al crear, mover y restaurar, también bajo concurrencia. |
+| HU-15 — Bloqueos | Jair | Cristofer | Bloquear y desbloquear con motivo, actor y fecha; mostrar el estado y conservar el historial. |
+| HU-16 — Vencimientos | Jair | Cristofer | Agregar, modificar y quitar fechas; persistir UTC y calcular correctamente las tarjetas vencidas. |
+| HU-17 — Checklist | Jair | Cristofer | Implementar altas, edición, orden, completado y borrado de pasos; devolver su progreso. |
+| HU-18 — Comentarios | Cristofer | JoseCarlos | Implementar comentarios paginados y ordenados con permisos de autor, independientes del chat general. |
+| HU-19 — Historial | Cristofer | JoseCarlos | Registrar eventos de tarjetas en la misma transacción y exponer un historial de consulta sin edición directa. |
+| HU-20 — Archivo | Cristofer | JoseCarlos | Archivar/restaurar proyectos y tarjetas respetando permisos, columnas disponibles, WIP y conservación de datos. |
+| HU-21 — Métricas | JoseCarlos | Jair | Clasificar columnas y calcular WIP, throughput, lead time y cycle time a partir de eventos válidos. |
+| HU-22 — Integración del cliente | JoseCarlos | Jair | Acordar e integrar un cliente externo; verificar arrastre, recarga, filtros, errores y permisos con las APIs de los tres responsables. |
+| HU-23 — Contratos y ejecución | Cristofer | JoseCarlos | Mantener OpenAPI, ejemplos y guía de ejecución; integrar con los otros dos responsables las pruebas que escriban para sus historias. |
+
+Las dependencias se coordinan entre responsables: HU-00 habilita los accesos protegidos; HU-01 a HU-04 aportan la base de proyectos y columnas para las tarjetas; HU-08 define los permisos de colaboración; HU-19 aporta eventos para HU-21. HU-22 y HU-23 se trabajan conforme se completan las funcionalidades, sin esperar al final para integrar.
 
 ## Reglas comunes de aceptación
 

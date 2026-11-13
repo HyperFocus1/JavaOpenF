@@ -1,4 +1,4 @@
-package com.open_f.fu.shared;
+package com.open_f.fu.config;
 
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 

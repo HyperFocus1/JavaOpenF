@@ -1,7 +1,9 @@
-package com.open_f.fu.shared.persistence;
+package com.open_f.fu.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.open_f.fu.shared.persistence.PersistenceManager;
 
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;

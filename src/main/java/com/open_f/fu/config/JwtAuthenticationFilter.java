@@ -1,10 +1,13 @@
-package com.open_f.fu.shared.security;
+package com.open_f.fu.config;
 
 import java.util.Set;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.open_f.fu.shared.security.BrowserSessions.Entry;
+import com.open_f.fu.account.security.BrowserSessions;
+import com.open_f.fu.account.security.BrowserSessions.Entry;
+import com.open_f.fu.shared.security.JwtSecurityContext;
+import com.open_f.fu.shared.security.JwtService;
 
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
@@ -20,7 +23,7 @@ import jakarta.ws.rs.ext.Provider;
 @Priority(Priorities.AUTHENTICATION)
 public class JwtAuthenticationFilter implements ContainerRequestFilter {
     private static final Set<String> PUBLIC_PATHS = Set.of(
-        "users/login", "users/register", "session", "session/login", "session/register", "session/logout");
+        "health", "users/login", "users/register", "session", "session/login", "session/register", "session/logout");
     private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
     private static final String BEARER = "Bearer ";
     private final JwtService jwtService;

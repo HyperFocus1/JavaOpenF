@@ -1,4 +1,4 @@
-package com.open_f.fu.shared.security;
+package com.open_f.fu.account.security;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

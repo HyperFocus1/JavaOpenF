@@ -9,8 +9,8 @@ import com.open_f.fu.account.api.request.LoginRequest;
 import com.open_f.fu.account.api.request.RegisterRequest;
 import com.open_f.fu.account.api.response.UserResponse;
 import com.open_f.fu.account.service.UserService;
-import com.open_f.fu.shared.security.BrowserSessions;
-import com.open_f.fu.shared.security.BrowserSessions.Entry;
+import com.open_f.fu.account.security.BrowserSessions;
+import com.open_f.fu.account.security.BrowserSessions.Entry;
 import com.open_f.fu.shared.security.JwtService;
 
 import jakarta.inject.Inject;

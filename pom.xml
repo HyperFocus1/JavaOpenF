@@ -8,7 +8,7 @@
     <artifactId>open_f</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <!-- se necesita war para tener el tomcat embeddido -->
+    <!-- Aplicación WAR para desplegar en Tomcat. -->
     <packaging>war</packaging>
 
     <properties>
@@ -19,6 +19,7 @@
         <jersey.version>3.1.11</jersey.version>
         <reactor-bom.version>2025.0.8</reactor-bom.version>
         <junit.version>6.0.3</junit.version>
+        <mockito.version>5.24.0</mockito.version>
     </properties>
 
     <!-- Alinea Reactor Core y Reactor Netty, sin Spring ni Spring Boot. -->
@@ -49,15 +50,16 @@
         </dependency>
 
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-test</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.version}</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -182,6 +184,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.4</version>
+                <configuration>
+                    <!-- Carga Mockito como agente al ejecutar las pruebas en Java 21+. -->
+                    <argLine>-javaagent:"${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar"</argLine>
+                </configuration>
             </plugin>
 
             <plugin>

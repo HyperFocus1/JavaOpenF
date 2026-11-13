@@ -1,13 +1,13 @@
-package com.open_f.fu.shared.error;
+package com.open_f.fu.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.open_f.fu.shared.domain.AppException;
 import com.open_f.fu.shared.domain.ConflictException;
-import com.open_f.fu.shared.domain.DomainException;
 import com.open_f.fu.shared.domain.NotFoundException;
 import com.open_f.fu.shared.domain.UnauthorizedException;
+import com.open_f.fu.shared.error.ApiError;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
@@ -40,7 +40,6 @@ public class ApiExceptionMapper implements ExceptionMapper<RuntimeException> {
         if (ex instanceof NotFoundException) return Status.NOT_FOUND;
         if (ex instanceof ConflictException) return Status.CONFLICT;
         if (ex instanceof UnauthorizedException) return Status.UNAUTHORIZED;
-        if (ex instanceof DomainException) return Status.BAD_REQUEST;
         return Status.BAD_REQUEST;
     }
 

@@ -43,7 +43,7 @@ public class ProjectResource {
     @Path("/{projectId}/task")
     public Response updateTask(@PathParam("projectId") Long projectId, @Context SecurityContext securityContext, TaskUpdateRequest req) {
 
-        if (!taskService.taskExistsOnProject(req.taskId(), projectId)) {
+        if (taskService.taskExistsOnProject(req.taskId(), projectId)) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
@@ -56,7 +56,7 @@ public class ProjectResource {
     @Path("/{projectId}/task/move")
     public Response moveTask(@PathParam("projectId") Long projectId, @Context SecurityContext securityContext, TaskUpdateRequest req) {
 
-        if (!taskService.taskExistsOnProject(req.taskId(), projectId)) {
+        if (taskService.taskExistsOnProject(req.taskId(), projectId)) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
         Task taskUpdate = taskService.updatePosition(req.taskUpdatePositionCommand(req.taskId(), req.positionOrder()));

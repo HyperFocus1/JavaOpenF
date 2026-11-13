@@ -10,7 +10,7 @@
 
     <listener>
         <listener-class>
-            com.open_f.fu.shared.persistence.PersistenceListener
+            com.open_f.fu.config.PersistenceListener
         </listener-class>
     </listener>
 
