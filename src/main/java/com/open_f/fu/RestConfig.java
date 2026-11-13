@@ -18,8 +18,8 @@ public class RestConfig extends ResourceConfig {
     public RestConfig() {
         packages(
                 "com.open_f.fu.account.api",
-                "com.open_f.fu.workspaces.api",
-                "com.open_f.fu.chats.api",
+                "com.open_f.fu.workspace.api",
+                "com.open_f.fu.chat.api",
                 "com.open_f.fu.shared.error",
                 "com.open_f.fu.shared.security");
 
