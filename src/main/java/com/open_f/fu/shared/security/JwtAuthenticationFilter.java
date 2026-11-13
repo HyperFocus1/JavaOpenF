@@ -4,12 +4,14 @@ import java.util.Set;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.open_f.fu.shared.security.BrowserSessions.Entry;
 
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
@@ -17,11 +19,10 @@ import jakarta.ws.rs.ext.Provider;
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class JwtAuthenticationFilter implements ContainerRequestFilter {
-
-    // Rutas que no piden token (relativas a /api)
-    private static final Set<String> PUBLIC_PATHS = Set.of("users/login", "users/register");
+    private static final Set<String> PUBLIC_PATHS = Set.of(
+        "users/login", "users/register", "session", "session/login", "session/register", "session/logout");
+    private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
     private static final String BEARER = "Bearer ";
-
     private final JwtService jwtService;
 
     @Inject
@@ -30,26 +31,38 @@ public class JwtAuthenticationFilter implements ContainerRequestFilter {
     }
 
     @Override
-    public void filter(ContainerRequestContext ctx) {
-        String path = ctx.getUriInfo().getPath();
-        if (path.startsWith("/")) {
-            path = path.substring(1);
-        }
-        if (PUBLIC_PATHS.contains(path)) {
-            return;
-        }
+    public void filter(ContainerRequestContext context) {
+        String path = context.getUriInfo().getPath();
+        if (path.startsWith("/")) path = path.substring(1);
+        if (PUBLIC_PATHS.contains(path)) return;
 
-        String authorization = ctx.getHeaderString(HttpHeaders.AUTHORIZATION);
-        if (authorization == null || !authorization.startsWith(BEARER)) {
-            ctx.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
-            return;
+        String authorization = context.getHeaderString(HttpHeaders.AUTHORIZATION);
+        String token;
+        if (authorization != null) {
+            if (!authorization.startsWith(BEARER)) { unauthorized(context); return; }
+            token = authorization.substring(BEARER.length());
+        } else {
+            Cookie cookie = context.getCookies().get(BrowserSessions.SESSION_COOKIE);
+            Entry session = BrowserSessions.find(cookie == null ? null : cookie.getValue());
+            if (session == null || session.user() == null || session.jwt() == null) {
+                unauthorized(context); return;
+            }
+            if (!SAFE_METHODS.contains(context.getMethod())
+                    && !BrowserSessions.csrfMatches(session, context.getHeaderString(BrowserSessions.CSRF_HEADER))) {
+                context.abortWith(Response.status(Response.Status.FORBIDDEN).build()); return;
+            }
+            token = session.jwt();
         }
 
         try {
-            DecodedJWT jwt = jwtService.verifyToken(authorization.substring(BEARER.length()));
-            ctx.setSecurityContext(new JwtSecurityContext(jwt.getSubject(), ctx.getSecurityContext()));
-        } catch (JWTVerificationException | IllegalArgumentException e) {
-            ctx.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+            DecodedJWT decoded = jwtService.verifyToken(token);
+            context.setSecurityContext(new JwtSecurityContext(decoded.getSubject(), context.getSecurityContext()));
+        } catch (JWTVerificationException | IllegalArgumentException exception) {
+            unauthorized(context);
         }
+    }
+
+    private static void unauthorized(ContainerRequestContext context) {
+        context.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
     }
 }

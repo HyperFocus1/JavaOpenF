@@ -4,6 +4,7 @@ import java.util.Locale;
 
 import com.open_f.fu.account.domain.exception.EmailAlreadyExistsException;
 import com.open_f.fu.account.domain.exception.InvalidCredentialsException;
+import com.open_f.fu.account.domain.exception.UserNotFoundException;
 import com.open_f.fu.account.domain.interfaces.PasswordHasher;
 import com.open_f.fu.account.domain.interfaces.UserRepository;
 import com.open_f.fu.account.domain.model.User;
@@ -56,6 +57,11 @@ public class UserService {
         }
 
         return jwtService.generateToken(user.getId(), user.getEmail());
+    }
+
+    public User current(Long userId) {
+        return tx.inTransaction(() -> users.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId)));
     }
 
     // Lo usan otros módulos (workspaces, chats) en vez de tocar UserRepository

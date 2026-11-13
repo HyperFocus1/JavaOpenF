@@ -12,7 +12,6 @@ import com.open_f.fu.workspace.domain.model.Task;
 import com.open_f.fu.workspace.service.ProjectService;
 
 import com.open_f.fu.workspace.service.TaskService;
-import com.open_f.fu.workspace.service.command.TaskUpdateCommand;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;

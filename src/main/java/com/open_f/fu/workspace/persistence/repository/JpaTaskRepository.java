@@ -14,7 +14,6 @@ import com.open_f.fu.workspace.persistence.mapper.TaskMapper;
 
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 
 public class JpaTaskRepository extends JpaRepository<TaskEntity> implements TaskRepository {
 
