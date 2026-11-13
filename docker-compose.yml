@@ -1,0 +1,14 @@
+services:
+  data_db:
+    image: mysql:8.4
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: open_f
+    volumes:
+      - data_db:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  data_db:

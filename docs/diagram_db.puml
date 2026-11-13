@@ -1,0 +1,160 @@
+@startuml
+title JavaOpenF - Kanban: entidades existentes y nuevas
+top to bottom direction
+hide methods
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+class "UserEntity\nusers" as UserEntity <<existente>> {
+  id : Id
+  email : Texto
+  name : Texto
+  lastName : Texto
+  password : Texto
+  active : Booleano *
+  created_at : FechaHora
+  updated_at : FechaHora
+}
+class "ProjectEntity\nprojects" as ProjectEntity <<existente>> {
+  id : Id
+  title : Texto
+  description : Texto?
+  owner_id : Id
+  archived_at : FechaHora? *
+  deleted_at : FechaHora? *
+  created_at : FechaHora
+  updated_at : FechaHora
+}
+class "ProjectColumnEntity\nproject_column" as ProjectColumnEntity <<existente>> {
+  id : Id
+  project_id : Id
+  name : Texto
+  color : Color
+  positionY : Numero
+  flow_category : CategoriaFlujo *
+  wip_limit : Numero? *
+}
+class "TaskEntity\nproject_task" as TaskEntity <<existente>> {
+  id : Id
+  project_id : Id
+  column_id : Id
+  author_id : Id
+  assignee_id : Id? *
+  code : Texto
+  title : Texto
+  description : Texto?
+  priority : TaskPriority
+  position_y : Numero
+  due_at : FechaHora? *
+  blocked_reason : Texto? *
+  archived_at : FechaHora? *
+  deleted_at : FechaHora? *
+  created_at : FechaHora
+  updated_at : FechaHora
+}
+class "MemberEntity\nmembers" as MemberEntity <<nueva>> {
+  id : Id
+  project_id : Id
+  user_id : Id
+  role : Rol
+}
+class "ProjectInvitationEntity\nproject_invitations" as ProjectInvitationEntity <<nueva>> {
+  id : Id
+  project_id : Id
+  invited_by : Id
+  email : Texto
+  role : Rol
+  status : EstadoInvitacion
+  token_hash : Hash
+  expires_at : FechaHora
+}
+class "ProjectTagEntity\nproject_tags" as ProjectTagEntity <<nueva>> {
+  id : Id
+  project_id : Id
+  name : Texto
+  color : Color
+}
+class "TaskTagEntity\ntask_tags" as TaskTagEntity <<nueva>> {
+  task_id : Id
+  tag_id : Id
+}
+class "TaskChecklistItemEntity\ntask_checklist" as TaskChecklistItemEntity <<nueva>> {
+  id : Id
+  task_id : Id
+  text : Texto
+  position : Numero
+  completed : Booleano
+}
+class "TaskCommentEntity\ntask_comments" as TaskCommentEntity <<nueva>> {
+  id : Id
+  task_id : Id
+  author_id : Id
+  content : Texto
+  created_at : FechaHora
+  updated_at : FechaHora
+}
+class "TaskEventEntity\ntask_events" as TaskEventEntity <<nueva>> {
+  id : Id
+  task_id : Id
+  actor_id : Id
+  event_type : TipoEvento
+  occurred_at : FechaHora
+  before_data : Datos?
+  after_data : Datos
+}
+class "ProjectEventEntity\nproject_events" as ProjectEventEntity <<nueva>> {
+  id : Id
+  project_id : Id
+  actor_id : Id
+  event_type : TipoEvento
+  occurred_at : FechaHora
+  before_data : Datos?
+  after_data : Datos
+}
+class "ChannelEntity\nchannels" as ChannelEntity <<existente>> {
+  id : Id
+  project_id : Id *
+  title : Texto
+  created_at : FechaHora
+  updated_at : FechaHora
+}
+class "MessageEntity\nmessages" as MessageEntity <<existente>> {
+  id : Id
+  project_id : Id *
+  channel_id : Id
+  author_id : Id *
+  content : Texto
+  created_at : FechaHora
+  updated_at : FechaHora
+}
+UserEntity "1" -- "0..*" ProjectEntity : owner_id
+ProjectEntity "1" -- "0..*" ProjectColumnEntity : project_id
+ProjectEntity "1" -- "0..*" TaskEntity : project_id
+ProjectColumnEntity "1" -- "0..*" TaskEntity : column_id
+UserEntity "1" -- "0..*" TaskEntity : author_id
+UserEntity "0..1" -- "0..*" TaskEntity : assignee_id
+ProjectEntity "1" -- "0..*" MemberEntity : project_id
+UserEntity "1" -- "0..*" MemberEntity : user_id
+ProjectEntity "1" -- "0..*" ProjectInvitationEntity : project_id
+UserEntity "1" -- "0..*" ProjectInvitationEntity : invited_by
+ProjectEntity "1" -- "0..*" ProjectTagEntity : project_id
+TaskEntity "1" -- "0..*" TaskTagEntity : task_id
+ProjectTagEntity "1" -- "0..*" TaskTagEntity : tag_id
+TaskEntity "1" -- "0..*" TaskChecklistItemEntity : task_id
+TaskEntity "1" -- "0..*" TaskCommentEntity : task_id
+UserEntity "1" -- "0..*" TaskCommentEntity : author_id
+TaskEntity "1" -- "0..*" TaskEventEntity : task_id
+UserEntity "1" -- "0..*" TaskEventEntity : actor_id
+ProjectEntity "1" -- "0..*" ProjectEventEntity : project_id
+UserEntity "1" -- "0..*" ProjectEventEntity : actor_id
+ProjectEntity "1" -- "0..*" ChannelEntity : project_id
+ProjectEntity "1" -- "0..*" MessageEntity : project_id
+ChannelEntity "1" -- "0..*" MessageEntity : channel_id
+UserEntity "1" -- "0..*" MessageEntity : author_id
+legend left
+  EXISTENTE: clase localizada; puede requerir cambios.
+  NUEVA: nombre propuesto, pendiente de implementar.
+  * Atributo por agregar. ? Referencia o dato opcional.
+  Atributos basicos; no es un esquema fisico cerrado.
+endlegend
+@enduml
