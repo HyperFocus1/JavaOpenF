@@ -31,7 +31,7 @@ import jakarta.ws.rs.core.Response;
 @Path("/session")
 @Produces(MediaType.APPLICATION_JSON)
 public class SessionResource {
-    public record SessionResponse(UserResponse user) {}
+    public record SessionResponse(UserResponse user, String token) {}
 
     private final UserService users;
     private final JwtService jwt;
@@ -106,10 +106,9 @@ public class SessionResource {
     }
 
     private static Response sessionResponse(Entry entry, Response.Status status) {
-        int maxAge = (int) Math.min(Integer.MAX_VALUE,
-            Math.max(0, Duration.between(Instant.now(), entry.expiresAt()).getSeconds()));
+        int maxAge = Math.clamp(Duration.between(Instant.now(), entry.expiresAt()).getSeconds(), 0, Integer.MAX_VALUE);
         return noStore(Response.status(status))
-            .entity(new SessionResponse(entry.user()))
+            .entity(new SessionResponse(entry.user(), entry.jwt()))
             .cookie(cookie(BrowserSessions.SESSION_COOKIE, entry.id(), true, maxAge),
                     cookie(BrowserSessions.CSRF_COOKIE, entry.csrf(), false, maxAge))
             .build();
