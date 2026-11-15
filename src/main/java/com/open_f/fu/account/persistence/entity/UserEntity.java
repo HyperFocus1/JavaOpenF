@@ -1,14 +1,11 @@
 package com.open_f.fu.account.persistence.entity;
 
 import com.open_f.fu.shared.persistence.BaseEntity;
+import com.open_f.fu.workspace.domain.model.TaskComment;
+import jakarta.persistence.*;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Solo la tabla "users". Las reglas viven en accounts.domain.model.User.
@@ -33,6 +30,12 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false)
     private String lastName;
 
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<TaskComment> taskComment = new ArrayList<>();
+
+
+
     protected UserEntity() {
     }
 
@@ -48,7 +51,15 @@ public class UserEntity extends BaseEntity {
     public String getPassword() { return password; }
     public String getName() { return name; }
     public String getLastName() { return lastName; }
+    public List<TaskComment> getTaskComment() {
+        return taskComment;
+    }
+
+
 
     public void setName(String name) { this.name = name; }
     public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setTaskComment(List<TaskComment> taskComment) {
+        this.taskComment = taskComment;
+    }
 }
