@@ -1,19 +1,12 @@
 package com.open_f.fu.workspace.persistence.entity;
 
 import com.open_f.fu.shared.persistence.BaseEntity;
+import com.open_f.fu.workspace.domain.model.TaskComment;
 import com.open_f.fu.workspace.domain.model.TaskPriority;
+import jakarta.persistence.*;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Solo la tabla "project_task". Las reglas viven en workspaces.domain.model.Task.
@@ -50,6 +43,10 @@ public class TaskEntity extends BaseEntity {
     @Column(name = "author_id", nullable = false)
     private Long authorId;
 
+
+    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
+    private List<TaskComment> taskComment = new ArrayList<>();
+
     protected TaskEntity() {
     }
 
@@ -74,9 +71,17 @@ public class TaskEntity extends BaseEntity {
     public ProjectColumnEntity getColumn() { return column; }
     public ProjectEntity getProject() { return project; }
     public Long getAuthorId() { return authorId; }
+    public List<TaskComment> getTaskComment() {
+        return taskComment;
+    }
+
+
 
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setPriority(TaskPriority priority) { this.priority = priority; }
     public void setPositionY(Double positionY) { this.positionY = positionY; }
+    public void setTaskComment(List<TaskComment> taskComment) {
+        this.taskComment = taskComment;
+    }
 }
