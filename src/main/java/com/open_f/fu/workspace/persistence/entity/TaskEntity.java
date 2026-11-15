@@ -45,7 +45,7 @@ public class TaskEntity extends BaseEntity {
 
 
     @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
-    private List<TaskComment> taskComment = new ArrayList<>();
+    private List<TaskCommentEntity> taskComment = new ArrayList<>();
 
     protected TaskEntity() {
     }
@@ -71,7 +71,7 @@ public class TaskEntity extends BaseEntity {
     public ProjectColumnEntity getColumn() { return column; }
     public ProjectEntity getProject() { return project; }
     public Long getAuthorId() { return authorId; }
-    public List<TaskComment> getTaskComment() {
+    public List<TaskCommentEntity> getTaskComment() {
         return taskComment;
     }
 
@@ -81,7 +81,7 @@ public class TaskEntity extends BaseEntity {
     public void setDescription(String description) { this.description = description; }
     public void setPriority(TaskPriority priority) { this.priority = priority; }
     public void setPositionY(Double positionY) { this.positionY = positionY; }
-    public void setTaskComment(List<TaskComment> taskComment) {
+    public void setTaskComment(List<TaskCommentEntity> taskComment) {
         this.taskComment = taskComment;
     }
 }
