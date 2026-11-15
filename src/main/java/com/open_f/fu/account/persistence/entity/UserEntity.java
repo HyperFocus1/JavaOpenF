@@ -2,6 +2,7 @@ package com.open_f.fu.account.persistence.entity;
 
 import com.open_f.fu.shared.persistence.BaseEntity;
 import com.open_f.fu.workspace.domain.model.TaskComment;
+import com.open_f.fu.workspace.persistence.entity.TaskCommentEntity;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class UserEntity extends BaseEntity {
 
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<TaskComment> taskComment = new ArrayList<>();
+    private List<TaskCommentEntity> taskComment = new ArrayList<>();
 
 
 
@@ -51,7 +52,7 @@ public class UserEntity extends BaseEntity {
     public String getPassword() { return password; }
     public String getName() { return name; }
     public String getLastName() { return lastName; }
-    public List<TaskComment> getTaskComment() {
+    public List<TaskCommentEntity> getTaskComment() {
         return taskComment;
     }
 
@@ -59,7 +60,7 @@ public class UserEntity extends BaseEntity {
 
     public void setName(String name) { this.name = name; }
     public void setLastName(String lastName) { this.lastName = lastName; }
-    public void setTaskComment(List<TaskComment> taskComment) {
+    public void setTaskComment(List<TaskCommentEntity> taskComment) {
         this.taskComment = taskComment;
     }
 }
