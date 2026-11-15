@@ -9,32 +9,32 @@ public class TaskComment {
 
     private final Long id;
     private final Long taskId;
-    private final Long authorId;
+    private final Long userId;
     private String content;
 
 
-    private TaskComment(Long id, Long taskId, Long authorId, String content){
+    private TaskComment(Long id, Long taskId, Long userId, String content){
         this.id = id;
         this.taskId  = taskId;
-        this.authorId  = authorId;
+        this.userId  = userId;
         this.content  = content;
 
         if(taskId == null){
             throw  new DomainException("El comentario necesita una tarjeta");
         }
-        if(authorId == null){
+        if(userId == null){
             throw  new DomainException("El comentario necesita un autor");
         }
     }
 
-    public static TaskComment create(Long taskId, Long authorId, String content){
-        return  new TaskComment(null, taskId, authorId, content);
+    public static TaskComment create(Long taskId, Long userId, String content){
+        return  new TaskComment(null, taskId, userId, content);
     }
-    public static TaskComment restore(Long id, Long taskId, Long authorId, String content){
+    public static TaskComment restore(Long id, Long taskId, Long userId, String content){
         if(id == null){
             throw  new IllegalArgumentException("El id es obligatorio al restaurar");
         }
-        return  new TaskComment(id, taskId, authorId, content);
+        return  new TaskComment(id, taskId, userId, content);
     }
 
     public  void edit(String newContent){
@@ -48,7 +48,7 @@ public class TaskComment {
         this.content = clean;
     }
     public  void assertAuthor(Long actorId){
-        if(!authorId.equals(actorId)){
+        if(!userId.equals(actorId)){
             throw  new DomainException("Solo el autor puede modificar el comentario");
         }
     }
@@ -61,8 +61,8 @@ public class TaskComment {
         return taskId;
     }
 
-    public Long getAuthorId() {
-        return authorId;
+    public Long getUserId() {
+        return userId;
     }
 
     public String getContent() {

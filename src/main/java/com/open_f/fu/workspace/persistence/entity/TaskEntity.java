@@ -1,7 +1,7 @@
 package com.open_f.fu.workspace.persistence.entity;
 
+import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.shared.persistence.BaseEntity;
-import com.open_f.fu.workspace.domain.model.TaskComment;
 import com.open_f.fu.workspace.domain.model.TaskPriority;
 import jakarta.persistence.*;
 
@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Solo la tabla "project_task". Las reglas viven en workspaces.domain.model.Task.
- * El autor se guarda por taskId: workspaces no depende de las entidades de accounts.
+ * La propiedad user representa al usuario autor mediante la columna author_id.
  */
 @Entity
 @Table(name = "project_task")
@@ -40,8 +40,9 @@ public class TaskEntity extends BaseEntity {
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 
-    @Column(name = "author_id", nullable = false)
-    private Long authorId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "author_id", nullable = false)
+    private UserEntity user;
 
 
     @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
@@ -51,7 +52,7 @@ public class TaskEntity extends BaseEntity {
     }
 
     public TaskEntity(String code, String title, String description, TaskPriority priority, Double positionY,
-                      ProjectEntity project, ProjectColumnEntity column, Long authorId) {
+                      ProjectEntity project, ProjectColumnEntity column, UserEntity user) {
         this.code = code;
         this.title = title;
         this.description = description;
@@ -59,7 +60,7 @@ public class TaskEntity extends BaseEntity {
         this.positionY = positionY;
         this.project = project;
         this.column = column;
-        this.authorId = authorId;
+        this.user = user;
     }
 
     public Long getId() { return id; }
@@ -70,7 +71,7 @@ public class TaskEntity extends BaseEntity {
     public Double getPositionY() { return positionY; }
     public ProjectColumnEntity getColumn() { return column; }
     public ProjectEntity getProject() { return project; }
-    public Long getAuthorId() { return authorId; }
+    public UserEntity getUser() { return user; }
     public List<TaskCommentEntity> getTaskComment() {
         return taskComment;
     }

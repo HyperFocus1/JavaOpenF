@@ -35,12 +35,12 @@ public class ProjectService {
     }
 
     // Crea el proyecto con sus 4 columnas y la tarjeta de bienvenida, todo en una transacción
-    public Project create(Long ownerId, String title, String description) {
-        Project draft = Project.create(ownerId, title, description);
+    public Project create(Long userId, String title, String description) {
+        Project draft = Project.create(userId, title, description);
 
         return tx.inTransaction(() -> {
-            if (!userService.exists(ownerId)) {
-                throw new UserNotFoundException(ownerId);
+            if (!userService.exists(userId)) {
+                throw new UserNotFoundException(userId);
             }
             Project project = projects.save(draft);
 
@@ -48,7 +48,7 @@ public class ProjectService {
                     .map(columns::save)
                     .toList();
 
-            tasks.save(Task.welcome(CodeGenerator.generate(), project.getId(), saved.getFirst().getId(), ownerId));
+            tasks.save(Task.welcome(CodeGenerator.generate(), project.getId(), saved.getFirst().getId(), userId));
 
             return project;
         });

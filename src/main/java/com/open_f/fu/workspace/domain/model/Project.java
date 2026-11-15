@@ -12,31 +12,31 @@ public class Project {
     public static final int MAX_DESCRIPTION = 400;
 
     private final Long id;
-    private final Long ownerId;
+    private final Long userId;
     private String title;
     private String description;
 
-    private Project(Long id, Long ownerId, String title, String description) {
-        if (ownerId == null) {
+    private Project(Long id, Long userId, String title, String description) {
+        if (userId == null) {
             throw new DomainException("El proyecto necesita un propietario");
         }
         this.id = id;
-        this.ownerId = ownerId;
+        this.userId = userId;
         rename(title);
         changeDescription(description);
   }
 
     // Proyecto nuevo
-    public static Project create(Long ownerId, String title, String description) {
-        return new Project(null, ownerId, title, description);
+    public static Project create(Long userId, String title, String description) {
+        return new Project(null, userId, title, description);
     }
 
     // Proyecto que ya existe en la BD
-    public static Project restore(Long id, Long ownerId, String title, String description) {
+    public static Project restore(Long id, Long userId, String title, String description) {
         if (id == null) {
             throw new IllegalArgumentException("El taskId es obligatorio al restaurar");
         }
-        return new Project(id, ownerId, title, description);
+        return new Project(id, userId, title, description);
     }
 
     public void rename(String newTitle) {
@@ -63,7 +63,7 @@ public class Project {
     }
 
     public Long getId() { return id; }
-    public Long getOwnerId() { return ownerId; }
+    public Long getUserId() { return userId; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
 }

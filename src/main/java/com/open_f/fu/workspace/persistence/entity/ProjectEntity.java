@@ -3,6 +3,7 @@ package com.open_f.fu.workspace.persistence.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.shared.persistence.BaseEntity;
 
 import jakarta.persistence.Column;
@@ -11,12 +12,14 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 /**
  * Solo la tabla "projects". Las reglas viven en workspaces.domain.model.Project.
- * El propietario se guarda por taskId: workspaces no depende de las entidades de accounts.
+ * La propiedad user representa al usuario propietario mediante la columna owner_id.
  */
 @Entity
 @Table(name = "projects")
@@ -32,8 +35,9 @@ public class ProjectEntity extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "owner_id", nullable = false)
-    private Long ownerId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private UserEntity user;
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
     private List<ProjectColumnEntity> columns = new ArrayList<>();
@@ -44,14 +48,14 @@ public class ProjectEntity extends BaseEntity {
     protected ProjectEntity() {
     }
 
-    public ProjectEntity(Long ownerId, String title, String description) {
-        this.ownerId = ownerId;
+    public ProjectEntity(UserEntity user, String title, String description) {
+        this.user = user;
         this.title = title;
         this.description = description;
     }
 
     public Long getId() { return id; }
-    public Long getOwnerId() { return ownerId; }
+    public UserEntity getUser() { return user; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public List<ProjectColumnEntity> getColumns() { return columns; }

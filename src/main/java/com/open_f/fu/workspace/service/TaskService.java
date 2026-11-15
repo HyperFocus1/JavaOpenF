@@ -57,11 +57,11 @@ public class TaskService {
             Project project = projects.findById(cmd.projectId()).orElseThrow(() -> new ProjectNotFoundException(cmd.projectId()));
 
             // Si el usuario no existe, el autor es el propietario del proyecto
-            Long authorId = userService.exists(cmd.userId()) ? cmd.userId() : project.getOwnerId();
+            Long userId = userService.exists(cmd.userId()) ? cmd.userId() : project.getUserId();
 
             double positionY = TaskPositioning.positionAt(tasks.findPositionsByColumnId(column.getId()), cmd.positionOrder());
 
-            Task task = Task.create(CodeGenerator.generate(), cmd.title(), cmd.description(), priority, positionY, cmd.projectId(), column.getId(), authorId);
+            Task task = Task.create(CodeGenerator.generate(), cmd.title(), cmd.description(), priority, positionY, cmd.projectId(), column.getId(), userId);
 
             return tasks.save(task);
         });

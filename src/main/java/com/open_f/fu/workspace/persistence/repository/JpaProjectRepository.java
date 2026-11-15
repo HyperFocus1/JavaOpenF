@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.shared.persistence.JpaRepository;
 import com.open_f.fu.workspace.domain.exception.ProjectNotFoundException;
 import com.open_f.fu.workspace.domain.interfaces.ProjectRepository;
@@ -27,7 +28,8 @@ public class JpaProjectRepository extends JpaRepository<ProjectEntity> implement
     @Override
     public Project save(Project project) {
         if (project.getId() == null) {
-            return ProjectMapper.toDomain(persist(this.em, ProjectMapper.toNewEntity(project)));
+            UserEntity user = this.em.getReference(UserEntity.class, project.getUserId());
+            return ProjectMapper.toDomain(persist(this.em, ProjectMapper.toNewEntity(project, user)));
         }
         ProjectEntity e = findEntity(this.em, project.getId())
                 .orElseThrow(() -> new ProjectNotFoundException(project.getId()));

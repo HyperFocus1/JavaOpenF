@@ -1,5 +1,6 @@
 package com.open_f.fu.workspace.persistence.mapper;
 
+import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.workspace.domain.model.Project;
 import com.open_f.fu.workspace.persistence.entity.ProjectEntity;
 
@@ -12,11 +13,11 @@ public final class ProjectMapper {
     }
 
     public static Project toDomain(ProjectEntity e) {
-        return Project.restore(e.getId(), e.getOwnerId(), e.getTitle(), e.getDescription());
+        return Project.restore(e.getId(), e.getUser().getId(), e.getTitle(), e.getDescription());
     }
 
-    public static ProjectEntity toNewEntity(Project p) {
-        return new ProjectEntity(p.getOwnerId(), p.getTitle(), p.getDescription());
+    public static ProjectEntity toNewEntity(Project p, UserEntity user) {
+        return new ProjectEntity(user, p.getTitle(), p.getDescription());
     }
 
     public static void copy(Project from, ProjectEntity to) {

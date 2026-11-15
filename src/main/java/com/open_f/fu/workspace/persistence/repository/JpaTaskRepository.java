@@ -3,6 +3,7 @@ package com.open_f.fu.workspace.persistence.repository;
 import java.util.List;
 import java.util.Optional;
 
+import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.shared.persistence.JpaRepository;
 import com.open_f.fu.workspace.domain.exception.TaskNotFoundException;
 import com.open_f.fu.workspace.domain.interfaces.TaskRepository;
@@ -30,7 +31,8 @@ public class JpaTaskRepository extends JpaRepository<TaskEntity> implements Task
         if (task.getId() == null) {
             ProjectEntity project = this.em.getReference(ProjectEntity.class, task.getProjectId());
             ProjectColumnEntity column = this.em.getReference(ProjectColumnEntity.class, task.getColumnId());
-            return TaskMapper.toDomain(persist(this.em, TaskMapper.toNewEntity(task, project, column)));
+            UserEntity user = this.em.getReference(UserEntity.class, task.getUserId());
+            return TaskMapper.toDomain(persist(this.em, TaskMapper.toNewEntity(task, project, column, user)));
         }
         TaskEntity e = findEntity(this.em, task.getId()).orElseThrow(() -> new TaskNotFoundException(task.getId()));
         TaskMapper.copy(task, e);

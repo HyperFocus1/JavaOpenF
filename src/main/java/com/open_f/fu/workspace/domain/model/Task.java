@@ -12,7 +12,7 @@ public class Task {
     private final Long id;
     private final String code;
     private final Long projectId;
-    private final Long authorId;
+    private final Long userId;
     private final Long columnId;
     private String title;
     private String description;
@@ -20,40 +20,40 @@ public class Task {
     private double positionY;
 
     private Task(Long id, String code, String title, String description, TaskPriority priority,
-                 double positionY, Long projectId, Long columnId, Long authorId) {
+                 double positionY, Long projectId, Long columnId, Long userId) {
         if (code == null || code.isBlank()) throw new DomainException("El código es obligatorio");
         if (projectId == null) throw new DomainException("La tarea necesita un proyecto");
         if (columnId == null) throw new DomainException("La tarea necesita una columna");
-        if (authorId == null) throw new DomainException("La tarea necesita un autor");
+        if (userId == null) throw new DomainException("La tarea necesita un autor");
         this.id = id;
         this.code = code;
         this.projectId = projectId;
         this.columnId = columnId;
-        this.authorId = authorId;
+        this.userId = userId;
         edit(title, description);
         changePriority(priority);
         this.positionY = positionY;
     }
 
     public static Task create(String code, String title, String description, TaskPriority priority,
-                              double positionY, Long projectId, Long columnId, Long authorId) {
-        return new Task(null, code, title, description, priority, positionY, projectId, columnId, authorId);
+                              double positionY, Long projectId, Long columnId, Long userId) {
+        return new Task(null, code, title, description, priority, positionY, projectId, columnId, userId);
     }
 
     public static Task restore(Long id, String code, String title, String description, TaskPriority priority,
-                               double positionY, Long projectId, Long columnId, Long authorId) {
+                               double positionY, Long projectId, Long columnId, Long userId) {
         if (id == null) {
             throw new IllegalArgumentException("El taskId es obligatorio al restaurar");
         }
-        return new Task(id, code, title, description, priority, positionY, projectId, columnId, authorId);
+        return new Task(id, code, title, description, priority, positionY, projectId, columnId, userId);
     }
 
     // Tarjeta de bienvenida de todo proyecto nuevo
-    public static Task welcome(String code, Long projectId, Long firstColumnId, Long authorId) {
+    public static Task welcome(String code, Long projectId, Long firstColumnId, Long userId) {
         return create(code,
                 "Get started with your first task",
                 "Welcome to your project! Edit this task, assign a priority, or drag it across the board to track its progress.",
-                TaskPriority.LOW, DEFAULT_POSITION, projectId, firstColumnId, authorId);
+                TaskPriority.LOW, DEFAULT_POSITION, projectId, firstColumnId, userId);
     }
 
     public void edit(String newTitle, String newDescription) {
@@ -83,5 +83,5 @@ public class Task {
     public double getPositionY() { return positionY; }
     public Long getProjectId() { return projectId; }
     public Long getColumnId() { return columnId; }
-    public Long getAuthorId() { return authorId; }
+    public Long getUserId() { return userId; }
 }

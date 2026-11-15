@@ -1,5 +1,6 @@
 package com.open_f.fu.workspace.persistence.mapper;
 
+import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.workspace.domain.model.Task;
 import com.open_f.fu.workspace.persistence.entity.ProjectColumnEntity;
 import com.open_f.fu.workspace.persistence.entity.ProjectEntity;
@@ -16,12 +17,12 @@ public final class TaskMapper {
     public static Task toDomain(TaskEntity e) {
         double position = e.getPositionY() == null ? Task.DEFAULT_POSITION : e.getPositionY();
         return Task.restore(e.getId(), e.getCode(), e.getTitle(), e.getDescription(), e.getPriority(),
-                position, e.getProject().getId(), e.getColumn().getId(), e.getAuthorId());
+                position, e.getProject().getId(), e.getColumn().getId(), e.getUser().getId());
     }
 
-    public static TaskEntity toNewEntity(Task t, ProjectEntity project, ProjectColumnEntity column) {
+    public static TaskEntity toNewEntity(Task t, ProjectEntity project, ProjectColumnEntity column, UserEntity user) {
         return new TaskEntity(t.getCode(), t.getTitle(), t.getDescription(), t.getPriority(),
-                t.getPositionY(), project, column, t.getAuthorId());
+                t.getPositionY(), project, column, user);
     }
 
     public static void copy(Task from, TaskEntity to) {

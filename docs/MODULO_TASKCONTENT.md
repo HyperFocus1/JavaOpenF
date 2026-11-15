@@ -2,7 +2,7 @@
 
 Módulo nuevo del Kanban. Cuelga de la tarjeta (`task_id`) y guarda lo que la gente deja sobre ella: **comentarios** y **archivos**. Cubre la HU-18 de [HISTORIAS_USUARIO.md](HISTORIAS_USUARIO.md) y añade la HU-24 (archivos), que no estaba en el alcance original.
 
-Responsable: Jose Carlos. Sigue las reglas del [README](../README.md): mismas cuatro capas, `api → service → domain ← persistence`, ids entre módulos y uso de otros módulos solo por su `service`.
+Responsable: Jose Carlos. Mantiene las cuatro capas, `api → service → domain ← persistence`. El dominio trabaja con identificadores (`taskId`, `userId`); las asociaciones con `TaskEntity` y `UserEntity` se resuelven en persistencia. Los servicios colaboran con otros módulos por sus servicios.
 
 ## Qué es y qué no es
 
@@ -21,9 +21,9 @@ account.UserEntity   (users)         1 ─── 0..*  task_comments   (author_i
                                      1 ─── 0..*  task_files      (author_id)
 ```
 
-- `task_id` y `author_id` se guardan como `Long`. **No** hay `@ManyToOne` hacia `TaskEntity` ni `UserEntity`.
+- En el dominio se usan `Long taskId` y `Long userId`. En JPA se usan las propiedades `TaskEntity task` y `UserEntity user`, con `@ManyToOne` y `@JoinColumn(name = "task_id")` / `@JoinColumn(name = "author_id")`. El nombre Java `user` no determina el nombre SQL: el usuario autor se guarda en `author_id`; el usuario propietario de `ProjectEntity` se guarda en `owner_id`.
 - Para validar que la tarjeta existe, `taskcontent.service` llama a `workspace.service.TaskService.taskExistsOnProject(taskId, projectId)`. Si hace falta un `TaskService.exists(taskId)` sin proyecto, se acuerda con Jair y lo agrega él en `workspace`.
-- El `author_id` sale siempre del token: `CurrentUser.id(securityContext)`. El cliente nunca lo manda.
+- El `userId` sale siempre del token: `CurrentUser.id(securityContext)`. El cliente nunca lo manda; en la base de datos queda en `author_id`.
 - `shared` sigue sin importar ningún módulo. `taskcontent` no importa `chat`.
 
 ## Historias de usuario
@@ -68,8 +68,8 @@ Criterios técnicos derivados:
 | Columna | Tipo | Regla |
 | --- | --- | --- |
 | `id` | BIGINT, PK, identity | — |
-| `task_id` | BIGINT, not null, índice | id de `project_task`; sin FK JPA |
-| `author_id` | BIGINT, not null | id de `users`; sin FK JPA |
+| `task_id` | BIGINT, not null, índice | referencia a `project_task`; propiedad JPA `task` |
+| `author_id` | BIGINT, not null | referencia a `users`; propiedad JPA `user` |
 | `content` | TEXT, not null | 1 a 4000 caracteres, sin espacios al borde |
 | `created_at` | DATETIME, not null | de `BaseEntity` |
 | `updated_at` | DATETIME, not null | de `BaseEntity` |
@@ -79,8 +79,8 @@ Criterios técnicos derivados:
 | Columna | Tipo | Regla |
 | --- | --- | --- |
 | `id` | BIGINT, PK, identity | — |
-| `task_id` | BIGINT, not null, índice | id de `project_task`; sin FK JPA |
-| `author_id` | BIGINT, not null | id de `users`; sin FK JPA |
+| `task_id` | BIGINT, not null, índice | referencia a `project_task`; propiedad JPA `task` |
+| `author_id` | BIGINT, not null | referencia a `users`; propiedad JPA `user` |
 | `name` | VARCHAR(255), not null | nombre original del archivo |
 | `size_bytes` | BIGINT, not null | > 0 y ≤ 26 214 400 (25 MB) |
 | `mime_type` | VARCHAR(100), not null | ej. `image/png`, `application/pdf` |
@@ -89,6 +89,12 @@ Criterios técnicos derivados:
 | `updated_at` | DATETIME, not null | de `BaseEntity` |
 
 Hibernate crea las tablas con `hbm2ddl.auto=update`. No se toca `persistence.xml`.
+
+Si `task_comments` se creó con el mapeo anterior, que usaba la columna `user_id`, hay que migrarla antes de desplegar este mapeo. Hibernate `update` no renombra columnas ni traslada sus valores. Solo cuando exista `user_id` y todavía no exista `author_id`, corresponde ejecutar:
+
+```sql
+ALTER TABLE task_comments RENAME COLUMN user_id TO author_id;
+```
 
 ## Contrato HTTP
 
@@ -109,7 +115,7 @@ Todas las rutas bajo `/api` y con `Authorization: Bearer <token>`.
 {
   "id": 12,
   "task_id": 7,
-  "author_id": 3,
+  "user_id": 3,
   "content": "Falta el test del mapper",
   "created_at": "2026-11-14T22:10:05Z",
   "updated_at": "2026-11-14T22:10:05Z"
@@ -130,7 +136,7 @@ Todas las rutas bajo `/api` y con `Authorization: Bearer <token>`.
 {
   "id": 4,
   "task_id": 7,
-  "author_id": 3,
+  "user_id": 3,
   "name": "diagrama.png",
   "size_bytes": 184320,
   "mime_type": "image/png",
@@ -142,7 +148,7 @@ Todas las rutas bajo `/api` y con `Authorization: Bearer <token>`.
 
 ### Errores
 
-Todos pasan por `shared/error/ApiExceptionMapper` y salen como `ApiError`.
+Todos pasan por `config/ApiExceptionMapper` y salen como `ApiError`.
 
 | Caso | Excepción | HTTP |
 | --- | --- | --- |
@@ -197,7 +203,7 @@ src/main/java/com/open_f/fu/taskcontent/
 
 Cambios fuera del módulo:
 
-- `RestConfig.java`: agregar `"com.open_f.fu.taskcontent.api"` a `packages(...)` y `register(new TaskContentBinder())`.
+- `RestApplication.java`: agregar `"com.open_f.fu.taskcontent.api"` a `packages(...)` y `register(new TaskContentBinder())`.
 - `workspace/service/TaskService.java` (Jair): `exists(Long taskId)` si `taskExistsOnProject` no alcanza.
 
 ## Flujo de un comentario
@@ -207,9 +213,9 @@ POST /tasks/7/comments  { "content": "Falta el test" }
   │
   ▼
 TaskCommentResource.create(taskId=7, securityContext, req)
-  │  authorId = CurrentUser.id(securityContext)        ← del token, nunca del body
+  │  userId = CurrentUser.id(securityContext)          ← del token, nunca del body
   ▼
-TaskCommentService.create(taskId=7, authorId=3, content)
+TaskCommentService.create(taskId=7, userId=3, content)
   │  tx.inTransaction:
   │    taskService.exists(7)        → false → TaskNotFoundException (404)
   │    TaskComment.create(7, 3, content)  → valida: no vacío, ≤ 4000
@@ -227,7 +233,7 @@ Edición y borrado:
 PUT /comments/12  { "content": "..." }
   → service.update(id=12, actorId=3, content)
      → comments.findById(12)  → vacío → CommentNotFoundException (404)
-     → comment.edit(content, actorId)  → actorId != authorId → NotCommentAuthorException (403)
+     → comment.edit(content, actorId)  → actorId != userId → NotCommentAuthorException (403)
      → comments.save(comment)
 ```
 
@@ -239,7 +245,7 @@ La regla "solo el autor" vive en `TaskComment.edit(...)` y `TaskComment.assertAu
 | --- | --- | --- |
 | D-1 | El backend guarda **metadatos** del archivo, no bytes. El cliente sube el binario a un almacén (S3, disco del servidor, etc.) y registra la URL. | MySQL no es para binarios; mantiene el WAR simple; el almacén se decide en P2 sin tocar este módulo. |
 | D-2 | Un solo módulo `taskcontent` con dos agregados, no dos módulos. | Comparten `task_id`, reglas de autoría y el mismo Binder. Dos módulos duplicarían todo. |
-| D-3 | Nada de `@ManyToOne` a `TaskEntity`. | Regla del README: entre módulos solo ids. |
+| D-3 | Asociaciones JPA en persistencia y solo identificadores en el dominio. | `task` y `user` representan las entidades relacionadas; `task_id` y `author_id` son los nombres de sus columnas. |
 | D-4 | Borrado físico por ahora. | HU-20 (archivo/baja lógica) todavía no está; se agrega `deleted_at` cuando aplique a todo el Kanban. |
 | D-5 | Rutas de edición y borrado por id plano (`/comments/{id}`), no anidadas. | El id ya es único; evita validar dos veces el `taskId`. |
 

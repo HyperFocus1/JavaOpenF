@@ -64,6 +64,7 @@ class TaskServiceTest {
         assertEquals("Corregir login", updated.getTitle());
         assertEquals("Validar las credenciales", updated.getDescription());
         assertEquals(TaskPriority.MEDIUM, updated.getPriority());
+        assertEquals(3L, updated.getUserId());
         verify(tasks).save(existing);
     }
 }

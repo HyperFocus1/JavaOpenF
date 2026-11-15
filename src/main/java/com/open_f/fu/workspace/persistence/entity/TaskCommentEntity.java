@@ -1,7 +1,6 @@
 package com.open_f.fu.workspace.persistence.entity;
 
 
-import com.fasterxml.jackson.databind.ser.Serializers;
 import com.open_f.fu.account.persistence.entity.UserEntity;
 import com.open_f.fu.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
