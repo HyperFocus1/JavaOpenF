@@ -20,7 +20,9 @@ import com.open_f.fu.workspace.service.command.TaskUpdateCommand;
 import com.open_f.fu.workspace.service.command.TaskUpdatePositionCommand;
 import jakarta.inject.Inject;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.RecursiveTask;
 
 public class TaskService {
 
@@ -37,6 +39,14 @@ public class TaskService {
         this.projects = projects;
         this.userService = userService;
         this.tx = tx;
+    }
+
+    public List<Task> getAll(Long projectId) {
+        return tx.inTransaction(() -> {
+            Project project = projects.findById(projectId).orElseThrow(() -> new ProjectNotFoundException(projectId));
+
+            return tasks.findTasksByProjectId(project.getId());
+        });
     }
 
     public Task create(TaskCreateCommand cmd) {

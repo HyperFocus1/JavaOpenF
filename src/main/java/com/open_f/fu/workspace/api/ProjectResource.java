@@ -1,6 +1,7 @@
 package com.open_f.fu.workspace.api;
 
 import java.net.URI;
+import java.util.List;
 
 import com.open_f.fu.shared.security.CurrentUser;
 import com.open_f.fu.workspace.api.request.ProjectRequest;
@@ -39,9 +40,16 @@ public class ProjectResource {
         return Response.created(URI.create("project/" + created.getId())).entity(ProjectResponse.from(created)).build();
     }
 
+    @GET
+    @Path("/{projectId}/tasks")
+    public Response getTasks(@PathParam("projectId") Long projectId) {
+        List<Task> listTasks = taskService.getAll(projectId);
+        return Response.ok(listTasks.stream().map(TaskResponse::from).toList()).build();
+    }
+
     @PUT()
-    @Path("/{projectId}/task")
-    public Response updateTask(@PathParam("projectId") Long projectId, @Context SecurityContext securityContext, TaskUpdateRequest req) {
+    @Path("/{projectId}/tasks")
+    public Response updateTask(@PathParam("projectId") Long projectId, TaskUpdateRequest req) {
 
         if (taskService.taskExistsOnProject(req.taskId(), projectId)) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -53,8 +61,8 @@ public class ProjectResource {
     }
 
     @POST()
-    @Path("/{projectId}/task/move")
-    public Response moveTask(@PathParam("projectId") Long projectId, @Context SecurityContext securityContext, TaskUpdateRequest req) {
+    @Path("/{projectId}/tasks/move")
+    public Response moveTask(@PathParam("projectId") Long projectId, TaskUpdateRequest req) {
 
         if (taskService.taskExistsOnProject(req.taskId(), projectId)) {
             return Response.status(Response.Status.NOT_FOUND).build();
