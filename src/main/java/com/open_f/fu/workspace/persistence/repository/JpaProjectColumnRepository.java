@@ -1,5 +1,7 @@
 package com.open_f.fu.workspace.persistence.repository;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,7 @@ import com.open_f.fu.workspace.persistence.mapper.ProjectColumnMapper;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 
+@Dependent
 public class JpaProjectColumnRepository extends JpaRepository<ProjectColumnEntity>
         implements ProjectColumnRepository {
 

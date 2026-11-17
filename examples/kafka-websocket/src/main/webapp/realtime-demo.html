@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JavaOpenF · Kafka y WebSocket</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #e2e8f0; background: #0f172a; }
+    body { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.7rem; margin-bottom: .4rem; }
+    p { color: #cbd5e1; line-height: 1.5; }
+    section { background: #1e293b; padding: 1.2rem; margin: 1rem 0; border-radius: .7rem; }
+    h2 { margin-top: 0; font-size: 1.1rem; }
+    label { display: inline-flex; flex-direction: column; gap: .3rem; margin: .4rem .6rem .4rem 0; }
+    input, select, button { font: inherit; padding: .6rem; border-radius: .35rem; border: 1px solid #64748b; }
+    input, select { background: #0f172a; color: inherit; max-width: 100%; }
+    button { background: #38bdf8; color: #082f49; cursor: pointer; margin: .3rem; }
+    button:disabled { opacity: .4; cursor: default; }
+    #status { font-weight: 600; color: #7dd3fc; }
+    li { padding: .4rem 0; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 380px; overflow: auto; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <h1>Crear una tarea y recibir su evento</h1>
+  <p>Abre esta página en dos pestañas e inicia sesión con la misma cuenta.
+    Conecta ambas al mismo proyecto y crea una tarea en una de ellas.</p>
+  <p id="status" role="status">Sin sesión</p>
+
+  <section>
+    <h2>1. Iniciar sesión</h2>
+    <label>Email <input id="email" type="email" autocomplete="username"></label>
+    <label>Contraseña <input id="password" type="password" autocomplete="current-password"></label>
+    <button id="login">Entrar</button>
+    <button id="register">Registrar cuenta de prueba</button>
+    <button id="logout">Salir</button>
+    <p>El registro usa el nombre «Demo Kafka». El token solo se conserva en memoria en esta pestaña.</p>
+  </section>
+
+  <section>
+    <h2>2. Elegir un proyecto propio</h2>
+    <label>Nombre de proyecto nuevo <input id="projectTitle" value="Demo Kafka" maxlength="15"></label>
+    <button id="createProject" disabled>Crear proyecto</button>
+    <br>
+    <label>ID de proyecto <input id="projectId" type="number" min="1" step="1"></label>
+    <button id="connect" disabled>Conectar WebSocket</button>
+    <button id="disconnect">Desconectar</button>
+  </section>
+
+  <section>
+    <h2>3. Crear tarea</h2>
+    <label>Columna <select id="columnId"></select></label>
+    <label>Título <input id="taskTitle" value="Tarea desde Kafka" maxlength="240"></label>
+    <button id="createTask" disabled>Crear tarea</button>
+    <button id="refresh" disabled>Actualizar listado</button>
+    <ul id="tasks"></ul>
+  </section>
+
+  <section>
+    <h2>Eventos recibidos</h2>
+    <pre id="events" aria-live="polite"></pre>
+  </section>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const apiBase = new URL('api/', location.href);
+    let token = null;
+    let socket = null;
+    let ready = false;
+    let heartbeat = null;
+    let reconnect = null;
+    let reconnectAllowed = false;
+    let attempts = 0;
+    let snapshotBusy = false;
+    let snapshotRequested = false;
+    const seen = new Set();
+
+    function log(label, data) {
+      const line = `${new Date().toLocaleTimeString()} ${label}`
+        + (data === undefined ? '' : ' ' + JSON.stringify(data));
+      $('events').textContent = (line + '\n' + $('events').textContent)
+        .split('\n').slice(0, 200).join('\n');
+    }
+
+    function projectId() {
+      const id = Number($('projectId').value);
+      if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Indica un ID de proyecto válido');
+      return id;
+    }
+
+    function buttons() {
+      $('createProject').disabled = !token;
+      $('connect').disabled = !token;
+      $('createTask').disabled = !ready || !$('columnId').value;
+      $('refresh').disabled = !ready;
+    }
+
+    async function api(path, method = 'GET', body, authenticated = true) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (authenticated && token) headers.Authorization = 'Bearer ' + token;
+      const response = await fetch(new URL(path, apiBase), {
+        method, headers, body: body === undefined ? undefined : JSON.stringify(body)
+      });
+      const text = await response.text();
+      let data;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${text}`);
+      return data;
+    }
+
+    function disconnect() {
+      reconnectAllowed = false;
+      clearTimeout(reconnect);
+      clearInterval(heartbeat);
+      const old = socket;
+      socket = null;
+      ready = false;
+      if (old) old.close(1000, 'Desconexión solicitada');
+      buttons();
+    }
+
+    async function login() {
+      disconnect();
+      token = null;
+      buttons();
+      const result = await api('users/login', 'POST', {
+        email: $('email').value, password: $('password').value
+      }, false);
+      token = result.token;
+      seen.clear();
+      $('status').textContent = 'Sesión iniciada. Elige un proyecto y conecta.';
+      log('Sesión iniciada');
+      buttons();
+    }
+
+    async function refreshSnapshot() {
+      if (!ready || !socket) return;
+      if (snapshotBusy) { snapshotRequested = true; return; }
+      snapshotBusy = true;
+      const current = socket;
+      const id = projectId();
+      try {
+        const snapshot = await api(`realtime/projects/${id}`);
+        if (socket !== current || !ready) return;
+        const previousColumn = $('columnId').value;
+        $('columnId').replaceChildren(...snapshot.columns.map(column => {
+          const option = document.createElement('option');
+          option.value = column.id;
+          option.textContent = column.name;
+          return option;
+        }));
+        if ([...$('columnId').options].some(option => option.value === previousColumn)) {
+          $('columnId').value = previousColumn;
+        }
+        $('tasks').replaceChildren(...snapshot.tasks.map(task => {
+          const item = document.createElement('li');
+          item.textContent = `#${task.id} · ${task.title} · ${task.priority}`;
+          return item;
+        }));
+        buttons();
+      } catch (error) {
+        log('No se pudo actualizar el listado', error.message);
+      } finally {
+        snapshotBusy = false;
+        if (snapshotRequested) {
+          snapshotRequested = false;
+          void refreshSnapshot();
+        }
+      }
+    }
+
+    function openSocket() {
+      const id = projectId();
+      const url = new URL('ws/events', location.href);
+      url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const current = new WebSocket(url);
+      socket = current;
+      ready = false;
+      buttons();
+      $('status').textContent = 'Conectando…';
+
+      current.onopen = () => {
+        if (socket !== current) return;
+        current.send(JSON.stringify({ type: 'authenticate', token }));
+      };
+
+      current.onmessage = event => {
+        if (socket !== current) return;
+        const message = JSON.parse(event.data);
+        log('WS', message);
+        if (message.type === 'authenticated') {
+          current.send(JSON.stringify({ type: 'subscribe', projectId: id }));
+        } else if (message.type === 'subscribed') {
+          ready = true;
+          attempts = 0;
+          $('status').textContent = `Conectado al proyecto ${id}`;
+          clearInterval(heartbeat);
+          heartbeat = setInterval(() => {
+            if (current.readyState === WebSocket.OPEN) {
+              current.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 25_000);
+          buttons();
+          void refreshSnapshot();
+        } else if (message.type === 'task.created' && message.projectId === id) {
+          if (seen.has(message.eventId)) return;
+          seen.add(message.eventId);
+          if (seen.size > 1000) seen.delete(seen.values().next().value);
+          // Leemos el estado actual: evita duplicados y datos viejos tras un replay.
+          void refreshSnapshot();
+        } else if (message.type === 'error') {
+          $('status').textContent = message.code;
+        }
+      };
+
+      current.onclose = event => {
+        if (socket !== current) return;
+        socket = null;
+        ready = false;
+        clearInterval(heartbeat);
+        buttons();
+        $('status').textContent = `Desconectado (${event.code}): ${event.reason}`;
+        log('WS cerrado', { code: event.code, reason: event.reason });
+        if (reconnectAllowed && token && event.code !== 1008) {
+          const delay = Math.min(30_000, 1000 * 2 ** Math.min(attempts++, 5));
+          reconnect = setTimeout(() => {
+            try { openSocket(); } catch (error) { log('Error', error.message); }
+          }, delay);
+        }
+      };
+      current.onerror = () => log('Error de conexión WebSocket');
+    }
+
+    function action(id, callback) {
+      $(id).onclick = async () => {
+        try { await callback(); }
+        catch (error) { log('Error', error.message); $('status').textContent = error.message; }
+      };
+    }
+
+    action('login', login);
+    action('register', async () => {
+      await api('users/register', 'POST', {
+        email: $('email').value, password: $('password').value,
+        name: 'Demo', last_name: 'Kafka'
+      }, false);
+      await login();
+    });
+    action('logout', () => {
+      disconnect(); token = null; seen.clear();
+      $('tasks').replaceChildren();
+      $('status').textContent = 'Sin sesión'; buttons();
+    });
+    action('createProject', async () => {
+      const project = await api('project', 'POST', {
+        title: $('projectTitle').value, description: 'Proyecto de prueba Kafka'
+      });
+      disconnect();
+      $('projectId').value = project.id;
+      $('status').textContent = `Proyecto ${project.id} creado. Conecta el WebSocket.`;
+      log('Proyecto creado', project);
+    });
+    action('connect', () => {
+      projectId(); disconnect(); reconnectAllowed = true; openSocket();
+    });
+    action('disconnect', () => { disconnect(); $('status').textContent = 'Desconectado'; });
+    action('refresh', refreshSnapshot);
+    action('createTask', async () => {
+      const task = await api(`realtime/projects/${projectId()}/columns/${$('columnId').value}/tasks`,
+        'POST', { title: $('taskTitle').value, description: '', priority: 'MEDIUM' });
+      log('HTTP: tarea guardada, esperando el evento Kafka', { taskId: task.id });
+    });
+    $('projectId').addEventListener('change', disconnect);
+    window.addEventListener('beforeunload', disconnect);
+    buttons();
+  </script>
+</body>
+</html>

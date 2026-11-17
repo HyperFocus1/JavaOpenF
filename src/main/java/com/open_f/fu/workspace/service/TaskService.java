@@ -1,97 +1,84 @@
 package com.open_f.fu.workspace.service;
 
-import com.open_f.fu.account.service.UserService;
-import com.open_f.fu.shared.persistence.TransactionManager;
 import com.open_f.fu.shared.util.CodeGenerator;
+import com.open_f.fu.workspace.domain.event.TaskEvent;
 import com.open_f.fu.workspace.domain.exception.ColumnNotFoundException;
-import com.open_f.fu.workspace.domain.exception.ProjectNotFoundException;
 import com.open_f.fu.workspace.domain.exception.TaskNotFoundException;
 import com.open_f.fu.workspace.domain.interfaces.ProjectColumnRepository;
-import com.open_f.fu.workspace.domain.interfaces.ProjectRepository;
 import com.open_f.fu.workspace.domain.interfaces.TaskRepository;
-import com.open_f.fu.workspace.domain.model.Project;
-import com.open_f.fu.workspace.domain.model.ProjectColumn;
 import com.open_f.fu.workspace.domain.model.Task;
 import com.open_f.fu.workspace.domain.model.TaskPositioning;
 import com.open_f.fu.workspace.domain.model.TaskPriority;
 import com.open_f.fu.workspace.service.command.TaskCreateCommand;
 import com.open_f.fu.workspace.service.command.TaskUpdateCommand;
-
 import com.open_f.fu.workspace.service.command.TaskUpdatePositionCommand;
+
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.RecursiveTask;
 
+@Dependent
+@Transactional
 public class TaskService {
 
     private final TaskRepository tasks;
     private final ProjectColumnRepository columns;
-    private final ProjectRepository projects;
-    private final UserService userService; // otro módulo: solo por su servicio
-    private final TransactionManager tx;
+    private final ProjectAccessService access;
+    private final Event<TaskEvent> events;
 
     @Inject
-    public TaskService(TaskRepository tasks, ProjectColumnRepository columns, ProjectRepository projects, UserService userService, TransactionManager tx) {
+    public TaskService(TaskRepository tasks, ProjectColumnRepository columns,
+                       ProjectAccessService access, Event<TaskEvent> events) {
         this.tasks = tasks;
         this.columns = columns;
-        this.projects = projects;
-        this.userService = userService;
-        this.tx = tx;
+        this.access = access;
+        this.events = events;
     }
 
-    public List<Task> getAll(Long projectId) {
-        return tx.inTransaction(() -> {
-            Project project = projects.findById(projectId).orElseThrow(() -> new ProjectNotFoundException(projectId));
-
-            return tasks.findTasksByProjectId(project.getId());
-        });
+    public List<Task> getAll(Long projectId, Long userId) {
+        access.requireAccess(userId, projectId);
+        return tasks.findTasksByProjectId(projectId);
     }
 
-    public Task create(TaskCreateCommand cmd) {
-        TaskPriority priority = TaskPriority.from(cmd.priority());
+    public Task create(TaskCreateCommand command) {
+        access.requireAccess(command.userId(), command.projectId());
+        var column = columns.findByIdAndProjectId(command.columnId(), command.projectId())
+                .orElseThrow(() -> new ColumnNotFoundException(command.columnId(), command.projectId()));
 
-        return tx.inTransaction(() -> {
-            ProjectColumn column = columns.findByIdAndProjectId(cmd.columnId(), cmd.projectId()).orElseThrow(() -> new ColumnNotFoundException(cmd.columnId(), cmd.projectId()));
-            Project project = projects.findById(cmd.projectId()).orElseThrow(() -> new ProjectNotFoundException(cmd.projectId()));
+        double position = TaskPositioning.positionAt(
+                tasks.findPositionsByColumnId(column.getId()), command.positionOrder());
 
-            // Si el usuario no existe, el autor es el propietario del proyecto
-            Long userId = userService.exists(cmd.userId()) ? cmd.userId() : project.getUserId();
+        Task task = Task.create(CodeGenerator.generate(), command.title(), command.description(),
+                TaskPriority.from(command.priority()), position,
+                command.projectId(), column.getId(), command.userId());
+        Task saved = tasks.save(task);
 
-            double positionY = TaskPositioning.positionAt(tasks.findPositionsByColumnId(column.getId()), cmd.positionOrder());
-
-            Task task = Task.create(CodeGenerator.generate(), cmd.title(), cmd.description(), priority, positionY, cmd.projectId(), column.getId(), userId);
-
-            return tasks.save(task);
-        });
+        // CDI entrega el evento al publisher solamente después de un commit correcto.
+        events.fire(TaskEvent.created(saved));
+        return saved;
     }
 
-    public Task update(TaskUpdateCommand cmd) {
-        return tx.inTransaction(() -> {
-            Task task = tasks.findById(cmd.id()).orElseThrow(() -> new TaskNotFoundException(cmd.id()));
-
-            task.edit(cmd.title(), cmd.description());
-
-            return tasks.save(task);
-        });
+    public Task update(TaskUpdateCommand command, Long projectId, Long userId) {
+        Task task = findTask(command.id(), projectId, userId);
+        task.edit(command.title(), command.description());
+        return tasks.save(task);
     }
 
-    public Task updatePosition(TaskUpdatePositionCommand cmd) {
-        return tx.inTransaction(() -> {
-            Task task = tasks.findById(cmd.id()).orElseThrow(() -> new TaskNotFoundException(cmd.id()));
-
-            task.edit(cmd.title(), cmd.description());
-            task.moveTo(TaskPositioning.positionAt(tasks.findPositionsByColumnId(task.getColumnId()), cmd.positionOrder()));
-
-            return tasks.save(task);
-        });
+    public Task updatePosition(TaskUpdatePositionCommand command, Long projectId, Long userId) {
+        Task task = findTask(command.id(), projectId, userId);
+        task.edit(command.title(), command.description());
+        task.moveTo(TaskPositioning.positionAt(
+                tasks.findPositionsByColumnId(task.getColumnId()), command.positionOrder()));
+        return tasks.save(task);
     }
 
-    public boolean taskExistsOnProject(Long taskId, Long projectId) {
-        return this.tx.inTransaction(() -> {
-            Optional<Task> task = tasks.findById(taskId);
-            return task.filter(value -> tasks.existsByProjectId(value, projectId)).isPresent();
-        });
+    private Task findTask(Long taskId, Long projectId, Long userId) {
+        access.requireAccess(userId, projectId);
+        return tasks.findById(taskId)
+                .filter(task -> task.getProjectId().equals(projectId))
+                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 }

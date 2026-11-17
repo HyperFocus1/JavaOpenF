@@ -1,0 +1,36 @@
+embed-server --server-config=standalone-microprofile.xml --std-out=echo
+
+if (outcome != success) of /extension=org.wildfly.extension.microprofile.reactive-streams-operators-smallrye:read-resource
+    /extension=org.wildfly.extension.microprofile.reactive-streams-operators-smallrye:add
+end-if
+if (outcome != success) of /subsystem=microprofile-reactive-streams-operators-smallrye:read-resource
+    /subsystem=microprofile-reactive-streams-operators-smallrye:add
+end-if
+if (outcome != success) of /extension=org.wildfly.extension.microprofile.reactive-messaging-smallrye:read-resource
+    /extension=org.wildfly.extension.microprofile.reactive-messaging-smallrye:add
+end-if
+if (outcome != success) of /subsystem=microprofile-reactive-messaging-smallrye:read-resource
+    /subsystem=microprofile-reactive-messaging-smallrye:add
+end-if
+
+if (outcome != success) of /subsystem=datasources/jdbc-driver=mysql:read-resource
+    /subsystem=datasources/jdbc-driver=mysql:add(driver-name=mysql,driver-module-name=com.mysql,driver-class-name=com.mysql.cj.jdbc.Driver)
+end-if
+
+# El parser de -ds.xml resuelve propiedades JVM. Un valor vacío conserva el default del WAR.
+if (outcome != success) of /system-property=openf.db.url:read-resource
+    /system-property=openf.db.url:add(value="${env.OPENF_DB_URL:}")
+end-if
+if (outcome != success) of /system-property=openf.db.user:read-resource
+    /system-property=openf.db.user:add(value="${env.OPENF_DB_USER:}")
+end-if
+if (outcome != success) of /system-property=openf.db.password:read-resource
+    /system-property=openf.db.password:add(value="${env.OPENF_DB_PASSWORD:}")
+end-if
+
+# Migrar instalaciones anteriores: el WAR define ahora su propio OpenFDS.
+if (outcome == success) of /subsystem=datasources/data-source=OpenFDS:read-resource
+    /subsystem=datasources/data-source=OpenFDS:remove
+end-if
+
+stop-embedded-server

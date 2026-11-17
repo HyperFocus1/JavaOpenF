@@ -1,5 +1,7 @@
 package com.open_f.fu.workspace.persistence.repository;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +18,7 @@ import com.open_f.fu.workspace.persistence.mapper.TaskMapper;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 
+@Dependent
 public class JpaTaskRepository extends JpaRepository<TaskEntity> implements TaskRepository {
 
     private final EntityManager em;

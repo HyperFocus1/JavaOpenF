@@ -1,5 +1,7 @@
 package com.open_f.fu.account.api;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -30,18 +32,13 @@ import jakarta.ws.rs.core.Response;
 
 @Path("/session")
 @Produces(MediaType.APPLICATION_JSON)
+@Dependent
 public class SessionResource {
     public record SessionResponse(UserResponse user, String token) {}
 
-    private final UserService users;
-    private final JwtService jwt;
+    @Inject private UserService users;
+    @Inject private JwtService jwt;
     @Context private HttpHeaders headers;
-
-    @Inject
-    public SessionResource(UserService users, JwtService jwt) {
-        this.users = users;
-        this.jwt = jwt;
-    }
 
     @GET
     public Response current() {

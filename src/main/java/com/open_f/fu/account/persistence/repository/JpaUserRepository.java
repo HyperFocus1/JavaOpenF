@@ -1,5 +1,7 @@
 package com.open_f.fu.account.persistence.repository;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.util.Optional;
 
 import com.open_f.fu.account.domain.exception.UserNotFoundException;
@@ -12,6 +14,7 @@ import com.open_f.fu.shared.persistence.JpaRepository;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 
+@Dependent
 public class JpaUserRepository extends JpaRepository<UserEntity> implements UserRepository {
 
     private final EntityManager em;

@@ -9,38 +9,37 @@ import com.open_f.fu.account.domain.interfaces.PasswordHasher;
 import com.open_f.fu.account.domain.interfaces.UserRepository;
 import com.open_f.fu.account.domain.model.User;
 import com.open_f.fu.account.service.command.RegisterCommand;
-import com.open_f.fu.shared.persistence.TransactionManager;
 import com.open_f.fu.shared.security.JwtService;
 
 import jakarta.inject.Inject;
+import jakarta.enterprise.context.Dependent;
+import jakarta.transaction.Transactional;
 
+@Dependent
+@Transactional
 public class UserService {
 
     private final UserRepository users;
     private final PasswordHasher passwordHasher;
     private final JwtService jwtService;
-    private final TransactionManager tx;
 
     @Inject
     public UserService(UserRepository users, PasswordHasher passwordHasher,
-                       JwtService jwtService, TransactionManager tx) {
+                       JwtService jwtService) {
         this.users = users;
         this.passwordHasher = passwordHasher;
         this.jwtService = jwtService;
-        this.tx = tx;
     }
 
     public User register(RegisterCommand cmd) {
         User.validateRawPassword(cmd.password());
         String email = User.normalizeEmail(cmd.email());
 
-        return tx.inTransaction(() -> {
-            if (users.existsByEmail(email)) {
-                throw new EmailAlreadyExistsException(email);
-            }
-            User user = User.create(email, passwordHasher.hash(cmd.password()), cmd.name(), cmd.lastName());
-            return users.save(user);
-        });
+        if (users.existsByEmail(email)) {
+            throw new EmailAlreadyExistsException(email);
+        }
+        User user = User.create(email, passwordHasher.hash(cmd.password()), cmd.name(), cmd.lastName());
+        return users.save(user);
     }
 
     // Devuelve el JWT del usuario autenticado
@@ -49,8 +48,7 @@ public class UserService {
             throw new InvalidCredentialsException();
         }
         String email = rawEmail.trim().toLowerCase(Locale.ROOT);
-        User user = tx.inTransaction(() -> users.findByEmail(email)
-                .orElseThrow(InvalidCredentialsException::new));
+        User user = users.findByEmail(email).orElseThrow(InvalidCredentialsException::new);
 
         if (!passwordHasher.matches(rawPassword, user.getPasswordHash())) {
             throw new InvalidCredentialsException();
@@ -60,12 +58,11 @@ public class UserService {
     }
 
     public User current(Long userId) {
-        return tx.inTransaction(() -> users.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId)));
+        return users.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     }
 
     // Lo usan otros módulos (workspaces, chats) en vez de tocar UserRepository
     public boolean exists(Long userId) {
-        return tx.inTransaction(() -> users.existsById(userId));
+        return users.existsById(userId);
     }
 }

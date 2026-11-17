@@ -1,5 +1,7 @@
 package com.open_f.fu.workspace.persistence.repository;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -15,6 +17,7 @@ import com.open_f.fu.workspace.persistence.mapper.ProjectMapper;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 
+@Dependent
 public class JpaProjectRepository extends JpaRepository<ProjectEntity> implements ProjectRepository {
 
     private final EntityManager em;

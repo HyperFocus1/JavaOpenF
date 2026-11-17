@@ -1,5 +1,7 @@
 package com.open_f.fu.shared.api;
 
+import jakarta.enterprise.context.Dependent;
+
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -9,6 +11,7 @@ import java.util.Map;
 
 @Path("/health")
 @Produces(MediaType.APPLICATION_JSON)
+@Dependent
 public class HealthResource {
 
     @GET

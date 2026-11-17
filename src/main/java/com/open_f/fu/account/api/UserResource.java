@@ -1,5 +1,7 @@
 package com.open_f.fu.account.api;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.net.URI;
 
 import com.open_f.fu.account.api.request.LoginRequest;
@@ -20,14 +22,11 @@ import jakarta.ws.rs.core.Response;
 @Path("/users")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Dependent
 public class UserResource {
 
-    private final UserService service;
-
     @Inject
-    public UserResource(UserService service) {
-        this.service = service;
-    }
+    UserService service;
 
     @POST
     @Path("/register")

@@ -1,14 +1,86 @@
 services:
+  api:
+    build:
+      context: .
+    image: javaopenf-api:local
+    ports:
+      - "127.0.0.1:${OPENF_HTTP_PORT:-8080}:8080"
+    environment:
+      OPENF_DB_URL: jdbc:mysql://data_db:3306/open_f
+      OPENF_DB_USER: root
+      OPENF_DB_PASSWORD: ${OPENF_DB_PASSWORD:-1234}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+      WEBSOCKET_CONSUMER_GROUP: openf-websocket-node-1
+      WEBSOCKET_ALLOWED_ORIGINS: ${WEBSOCKET_ALLOWED_ORIGINS:-http://localhost:${OPENF_HTTP_PORT:-8080},http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:-}
+    volumes:
+      - jwt_data:/opt/jboss/wildfly/standalone/data/openf-secrets
+    depends_on:
+      data_db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka_init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:8080/open_f/api/health && curl -fsS -o /dev/null http://127.0.0.1:9990/health/ready"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 12
+    restart: unless-stopped
+
   data_db:
     image: mysql:8.4
     ports:
-      - "3306:3306"
+      - "127.0.0.1:${OPENF_MYSQL_PORT:-3306}:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_ROOT_PASSWORD: ${OPENF_DB_PASSWORD:-1234}
       MYSQL_DATABASE: open_f
     volumes:
       - data_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 20
     restart: unless-stopped
+
+  kafka:
+    image: apache/kafka:4.1.0
+    ports:
+      - "127.0.0.1:${OPENF_KAFKA_PORT:-9092}:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:9094,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9094,EXTERNAL://localhost:${OPENF_KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9094", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  kafka_init:
+    image: apache/kafka:4.1.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command: ["--bootstrap-server", "kafka:9094", "--create", "--if-not-exists", "--topic", "tasks.events", "--partitions", "1", "--replication-factor", "1"]
 
 volumes:
   data_db:
+  kafka_data:
+  jwt_data:

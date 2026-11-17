@@ -1,9 +1,12 @@
 package com.open_f.fu.account.security;
 
+import jakarta.enterprise.context.Dependent;
+
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.open_f.fu.account.domain.interfaces.PasswordHasher;
 
+@Dependent
 public class BCryptPasswordHasher implements PasswordHasher {
 
     @Override

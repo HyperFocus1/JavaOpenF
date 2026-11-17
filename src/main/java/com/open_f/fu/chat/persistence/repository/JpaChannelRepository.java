@@ -1,5 +1,7 @@
 package com.open_f.fu.chat.persistence.repository;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.util.Optional;
 
 import com.open_f.fu.chat.domain.exception.ChannelNotFoundException;
@@ -12,6 +14,7 @@ import com.open_f.fu.shared.persistence.JpaRepository;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 
+@Dependent
 public class JpaChannelRepository extends JpaRepository<ChannelEntity> implements ChannelRepository {
 
     private final EntityManager em;

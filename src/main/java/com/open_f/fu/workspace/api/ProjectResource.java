@@ -1,10 +1,13 @@
 package com.open_f.fu.workspace.api;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.net.URI;
 import java.util.List;
 
 import com.open_f.fu.shared.security.CurrentUser;
 import com.open_f.fu.workspace.api.request.ProjectRequest;
+import com.open_f.fu.workspace.api.request.TaskCreateRequest;
 import com.open_f.fu.workspace.api.request.TaskUpdateRequest;
 import com.open_f.fu.workspace.api.response.ProjectResponse;
 import com.open_f.fu.workspace.api.response.TaskResponse;
@@ -23,16 +26,14 @@ import jakarta.ws.rs.core.SecurityContext;
 @Path("/project")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Dependent
 public class ProjectResource {
 
-    private final ProjectService projectService;
-    private final TaskService taskService;
+    @Inject
+    ProjectService projectService;
 
     @Inject
-    public ProjectResource(ProjectService pService, TaskService tService) {
-        this.projectService = pService;
-        this.taskService = tService;
-    }
+    TaskService taskService;
 
     @POST
     public Response create(@Context SecurityContext securityContext, ProjectRequest req) {
@@ -42,32 +43,40 @@ public class ProjectResource {
 
     @GET
     @Path("/{projectId}/tasks")
-    public Response getTasks(@PathParam("projectId") Long projectId) {
-        List<Task> listTasks = taskService.getAll(projectId);
+    public Response getTasks(@PathParam("projectId") Long projectId,
+                             @Context SecurityContext securityContext) {
+        List<Task> listTasks = taskService.getAll(projectId, CurrentUser.id(securityContext));
         return Response.ok(listTasks.stream().map(TaskResponse::from).toList()).build();
+    }
+
+    @POST
+    @Path("/{projectId}/columns/{columnId}/tasks")
+    public Response createTask(@PathParam("projectId") Long projectId,
+                               @PathParam("columnId") Long columnId,
+                               @QueryParam("positionOrder") @DefaultValue("0") int positionOrder,
+                               @Context SecurityContext securityContext, TaskCreateRequest request) {
+        Task task = taskService.create(request.toCommand(
+                projectId, columnId, CurrentUser.id(securityContext), positionOrder));
+        return Response.status(Response.Status.CREATED).entity(TaskResponse.from(task)).build();
     }
 
     @PUT()
     @Path("/{projectId}/tasks")
-    public Response updateTask(@PathParam("projectId") Long projectId, TaskUpdateRequest req) {
-
-        if (taskService.taskExistsOnProject(req.taskId(), projectId)) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-
-        Task taskUpdate = taskService.update(req.toCommand(req.taskId()));
+    public Response updateTask(@PathParam("projectId") Long projectId,
+                               @Context SecurityContext securityContext, TaskUpdateRequest req) {
+        Task taskUpdate = taskService.update(
+                req.toCommand(req.taskId()), projectId, CurrentUser.id(securityContext));
 
         return Response.ok(TaskResponse.from(taskUpdate)).build();
     }
 
     @POST()
     @Path("/{projectId}/tasks/move")
-    public Response moveTask(@PathParam("projectId") Long projectId, TaskUpdateRequest req) {
-
-        if (taskService.taskExistsOnProject(req.taskId(), projectId)) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        Task taskUpdate = taskService.updatePosition(req.taskUpdatePositionCommand(req.taskId(), req.positionOrder()));
+    public Response moveTask(@PathParam("projectId") Long projectId,
+                             @Context SecurityContext securityContext, TaskUpdateRequest req) {
+        Task taskUpdate = taskService.updatePosition(
+                req.taskUpdatePositionCommand(req.taskId(), req.positionOrder()),
+                projectId, CurrentUser.id(securityContext));
 
         return Response.ok(TaskResponse.from(taskUpdate)).build();
     }

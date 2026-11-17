@@ -1,5 +1,7 @@
 package com.open_f.fu.chat.api;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.net.URI;
 
 import com.open_f.fu.chat.api.request.ChannelCreateRequest;
@@ -22,14 +24,11 @@ import jakarta.ws.rs.core.Response;
 @Path("/channels")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Dependent
 public class ChannelResource {
 
-    private final ChannelService service;
-
     @Inject
-    public ChannelResource(ChannelService service) {
-        this.service = service;
-    }
+    ChannelService service;
 
     @POST
     public Response create(ChannelCreateRequest req) {

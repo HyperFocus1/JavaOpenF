@@ -6,7 +6,9 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import jakarta.enterprise.context.ApplicationScoped;
 
+@ApplicationScoped
 public class JwtService {
 
     private static final String ISSUER = "open-f";
@@ -16,7 +18,10 @@ public class JwtService {
     private final JWTVerifier verifier;
 
     public JwtService() {
-        String secret = "SECRET-JWT"; // TODO: leer de variable de entorno
+        String secret = System.getenv("JWT_SECRET");
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException("JWT_SECRET debe contener al menos 32 caracteres");
+        }
         this.algorithm = Algorithm.HMAC256(secret);
         this.verifier = JWT.require(algorithm).withIssuer(ISSUER).build();
     }

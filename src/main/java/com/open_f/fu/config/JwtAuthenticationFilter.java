@@ -1,5 +1,7 @@
 package com.open_f.fu.config;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.util.Set;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
@@ -21,17 +23,14 @@ import jakarta.ws.rs.ext.Provider;
 
 @Provider
 @Priority(Priorities.AUTHENTICATION)
+@Dependent
 public class JwtAuthenticationFilter implements ContainerRequestFilter {
     private static final Set<String> PUBLIC_PATHS = Set.of(
         "health", "users/login", "users/register", "session", "session/login", "session/register", "session/logout");
     private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
     private static final String BEARER = "Bearer ";
-    private final JwtService jwtService;
-
     @Inject
-    public JwtAuthenticationFilter(JwtService jwtService) {
-        this.jwtService = jwtService;
-    }
+    JwtService jwtService;
 
     @Override
     public void filter(ContainerRequestContext context) {

@@ -1,10 +1,13 @@
 package com.open_f.fu.config;
 
+import jakarta.enterprise.context.Dependent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.open_f.fu.shared.domain.AppException;
 import com.open_f.fu.shared.domain.ConflictException;
+import com.open_f.fu.shared.domain.ForbiddenException;
 import com.open_f.fu.shared.domain.NotFoundException;
 import com.open_f.fu.shared.domain.UnauthorizedException;
 import com.open_f.fu.shared.error.ApiError;
@@ -20,6 +23,7 @@ import jakarta.ws.rs.ext.Provider;
  * Un solo formato de error para toda la API.
  */
 @Provider
+@Dependent
 public class ApiExceptionMapper implements ExceptionMapper<RuntimeException> {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionMapper.class);
@@ -27,7 +31,7 @@ public class ApiExceptionMapper implements ExceptionMapper<RuntimeException> {
     @Override
     public Response toResponse(RuntimeException ex) {
         if (ex instanceof WebApplicationException wae) {
-            return wae.getResponse(); // 404 de ruta, 405, etc. de Jersey
+            return wae.getResponse(); // 404 de ruta, 405, etc.
         }
         if (ex instanceof AppException app) {
             return build(statusOf(app), app.getCode(), app.getMessage());
@@ -39,6 +43,7 @@ public class ApiExceptionMapper implements ExceptionMapper<RuntimeException> {
     private static Status statusOf(AppException ex) {
         if (ex instanceof NotFoundException) return Status.NOT_FOUND;
         if (ex instanceof ConflictException) return Status.CONFLICT;
+        if (ex instanceof ForbiddenException) return Status.FORBIDDEN;
         if (ex instanceof UnauthorizedException) return Status.UNAUTHORIZED;
         return Status.BAD_REQUEST;
     }

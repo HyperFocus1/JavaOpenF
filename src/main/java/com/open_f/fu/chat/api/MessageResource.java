@@ -1,5 +1,7 @@
 package com.open_f.fu.chat.api;
 
+import jakarta.enterprise.context.Dependent;
+
 import java.net.URI;
 import java.util.List;
 
@@ -21,14 +23,11 @@ import jakarta.ws.rs.core.Response;
 @Path("/messages")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Dependent
 public class MessageResource {
 
-    private final MessageService service;
-
     @Inject
-    public MessageResource(MessageService service) {
-        this.service = service;
-    }
+    MessageService service;
 
     @POST
     public Response create(MessageCreateRequest req) {
