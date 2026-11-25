@@ -3,6 +3,9 @@
     <deployment>
         <dependencies>
             <module name="org.jboss.resteasy.resteasy-jackson2-provider" services="import"/>
+            <!-- El publisher y el listener utilizan los módulos Jackson del servidor. -->
+            <module name="com.fasterxml.jackson.core.jackson-core"/>
+            <module name="com.fasterxml.jackson.core.jackson-databind"/>
         </dependencies>
     </deployment>
 </jboss-deployment-structure>

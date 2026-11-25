@@ -1,7 +1,6 @@
 package com.open_f.fu.workspace.service;
 
 import com.open_f.fu.shared.util.CodeGenerator;
-import com.open_f.fu.workspace.domain.event.TaskEvent;
 import com.open_f.fu.workspace.domain.exception.ColumnNotFoundException;
 import com.open_f.fu.workspace.domain.exception.TaskNotFoundException;
 import com.open_f.fu.workspace.domain.interfaces.ProjectColumnRepository;
@@ -14,7 +13,6 @@ import com.open_f.fu.workspace.service.command.TaskUpdateCommand;
 import com.open_f.fu.workspace.service.command.TaskUpdatePositionCommand;
 
 import jakarta.enterprise.context.Dependent;
-import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
@@ -27,11 +25,11 @@ public class TaskService {
     private final TaskRepository tasks;
     private final ProjectColumnRepository columns;
     private final ProjectAccessService access;
-    private final Event<TaskEvent> events;
+    private final TaskEvents events;
 
     @Inject
     public TaskService(TaskRepository tasks, ProjectColumnRepository columns,
-                       ProjectAccessService access, Event<TaskEvent> events) {
+                       ProjectAccessService access, TaskEvents events) {
         this.tasks = tasks;
         this.columns = columns;
         this.access = access;
@@ -57,14 +55,16 @@ public class TaskService {
         Task saved = tasks.save(task);
 
         // CDI entrega el evento al publisher solamente después de un commit correcto.
-        events.fire(TaskEvent.created(saved));
+        events.created(saved);
         return saved;
     }
 
     public Task update(TaskUpdateCommand command, Long projectId, Long userId) {
         Task task = findTask(command.id(), projectId, userId);
         task.edit(command.title(), command.description());
-        return tasks.save(task);
+        Task saved = tasks.save(task);
+        events.updated(saved);
+        return saved;
     }
 
     public Task updatePosition(TaskUpdatePositionCommand command, Long projectId, Long userId) {
@@ -72,7 +72,9 @@ public class TaskService {
         task.edit(command.title(), command.description());
         task.moveTo(TaskPositioning.positionAt(
                 tasks.findPositionsByColumnId(task.getColumnId()), command.positionOrder()));
-        return tasks.save(task);
+        Task saved = tasks.save(task);
+        events.moved(saved);
+        return saved;
     }
 
     private Task findTask(Long taskId, Long projectId, Long userId) {

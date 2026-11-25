@@ -2,6 +2,7 @@ package com.open_f.fu.workspace.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -9,13 +10,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.open_f.fu.workspace.domain.event.TaskEvent;
 import com.open_f.fu.workspace.domain.interfaces.ProjectColumnRepository;
-import jakarta.enterprise.event.Event;
 import com.open_f.fu.workspace.domain.interfaces.TaskRepository;
 import com.open_f.fu.workspace.domain.model.Task;
 import com.open_f.fu.workspace.domain.model.TaskPriority;
@@ -31,13 +29,10 @@ class TaskServiceTest {
     @Mock private TaskRepository tasks;
     @Mock private ProjectColumnRepository columns;
     @Mock private ProjectAccessService access;
-    @Mock private Event<TaskEvent> events;
-
-    // Mockito construye un TaskService real y le inyecta los mocks anteriores.
-    @InjectMocks private TaskService service;
+    @Mock private TaskEvents events;
 
     @Test
-    @DisplayName("Editar una tarea existente actualiza su título y descripción y la guarda")
+    @DisplayName("Editar una tarea guarda los cambios y delega el evento en TaskEvents")
     void actualizaTituloYDescripcionDeUnaTareaExistente() {
         // 1. Preparar: el dominio es real; el repositorio devuelve una tarea conocida.
         Task existing = Task.restore(7L, "TASK-007", "Título anterior", "Descripción anterior",
@@ -49,6 +44,8 @@ class TaskServiceTest {
 
         // 2. Actuar: llamamos al método que queremos aprender a probar.
         // El test unitario ejecuta Java directamente; no activa el interceptor JTA.
+        // Un solo mock representa la emisión de todos los eventos de tarea.
+        var service = new TaskService(tasks, columns, access, events);
         Task updated = service.update(command, 1L, 3L);
 
         // 3. Comprobar: JUnit valida el resultado y Mockito verifica el guardado.
@@ -58,5 +55,8 @@ class TaskServiceTest {
         assertEquals(3L, updated.getUserId());
         verify(access).requireAccess(3L, 1L);
         verify(tasks).save(existing);
+
+        verify(events).updated(updated);
+        verifyNoMoreInteractions(events);
     }
 }

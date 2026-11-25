@@ -186,11 +186,25 @@ Para comprobar el flujo con un usuario autenticado:
    {"title":"Aprender Kafka","description":"Evento de ejemplo","priority":"HIGH"}
    ```
 
-El flujo es `TaskService.create → commit JTA → TaskEventKafkaPublisher → tasks.events → TaskEventKafkaListener → WebSocket`.
+El flujo es `TaskService → TaskEvents → commit JTA → TaskEventKafkaPublisher → tasks.events → TaskEventKafkaListener → WebSocket`.
 
-El evento contiene `eventId`, `type: task.created`, `projectId`, `taskId`, `columnId` y `title`. El propietario del proyecto es el usuario autorizado, dado que todavía no hay miembros por proyecto. El token y el permiso se revisan antes de entregar eventos.
+Crear, editar y mover una tarea publican en el mismo topic y llegan al mismo WebSocket:
 
-`GET /open_f/api/project/{projectId}/tasks` obtiene el estado actual después de conectar o reconectar. Actualizar y mover tareas conserva las rutas existentes; esta base publica eventos desde la creación en `TaskService`.
+| Operación | Ruta REST (bajo `/open_f/api`) | Evento Java | Tipo en Kafka y WebSocket |
+| --- | --- | --- | --- |
+| Crear | `POST /project/{projectId}/columns/{columnId}/tasks` | `TaskCreated` | `task.created` |
+| Editar | `PUT /project/{projectId}/tasks` | `TaskUpdated` | `task.updated` |
+| Mover | `POST /project/{projectId}/tasks/move` | `TaskMoved` | `task.moved` |
+
+`TaskService` recibe una sola dependencia `TaskEvents` para emitir eventos y llama a `created(saved)`, `updated(saved)` o `moved(saved)`. `TaskEvents` construye el record correspondiente y lo dispara mediante `Event<TaskCreated>`, `Event<TaskUpdated>` o `Event<TaskMoved>` de CDI. El publicador tiene los observadores `publishCreated()`, `publishUpdated()` y `publishMoved()`, todos con `AFTER_SUCCESS`; comparten la conversión a JSON y el envío.
+
+El destino de `emitter.send(...)` está en `META-INF/microprofile-config.properties`: el canal interno `tasks-out` publica en el topic Kafka `tasks.events`. El canal `tasks-in` lee ese mismo topic y SmallRye llama a `TaskEventKafkaListener.listenFromKafka()`. El listener ejecuta `routeByEventType()` y selecciona `onTaskCreated()`, `onTaskUpdated()` u `onTaskMoved()` según el campo `type` del JSON. Cada método recibe su record Java y envía el mensaje al WebSocket del proyecto. La confirmación del envío a Kafka no confirma la recepción en el navegador.
+
+Los eventos contienen `eventId`, `type`, `projectId`, `taskId`, `columnId`, `title`, `description` y `positionY`, con los valores guardados. `description` puede ser `null`. El cliente distingue las operaciones mediante `type` y utiliza `positionY` para ordenar las tareas. El movimiento actual cambia la posición dentro de la misma columna.
+
+Para editar envía `{"taskId":123,"title":"Título actualizado","description":"Nuevo detalle"}`. Para mover utiliza la misma estructura con `positionOrder`, por ejemplo `{"taskId":123,"title":"Título actualizado","description":"Nuevo detalle","positionOrder":2}`. Sustituye los IDs por los de tu proyecto y tarea. La ruta de movimiento también conserva la edición de título y descripción que ya realizaba el servicio.
+
+El propietario del proyecto es el usuario autorizado, dado que todavía no hay miembros por proyecto. El token y el permiso se revisan antes de entregar eventos. `GET /open_f/api/project/{projectId}/tasks` obtiene el estado actual después de conectar o reconectar.
 
 Al ejecutar WildFly fuera de Docker, las variables opcionales son:
 
@@ -204,7 +218,7 @@ Compose configura una sola instancia de API. Para varias instancias WebSocket, c
 
 ## Alcance de la entrega
 
-`AFTER_SUCCESS` evita publicar una creación que hizo rollback. Esta base todavía no implementa outbox: una caída entre el commit de MySQL y la publicación en Kafka puede perder la notificación. WebSocket tampoco confirma que el navegador haya aplicado el evento; al reconectar consulta REST y utiliza `eventId` para detectar duplicados si los necesitas.
+`AFTER_SUCCESS` evita publicar una creación, edición o movimiento que hizo rollback. Esta base todavía no implementa outbox: una caída entre el commit de MySQL y la publicación en Kafka puede perder la notificación. WebSocket tampoco confirma que el navegador haya aplicado el evento; al reconectar consulta REST y utiliza `eventId` para detectar duplicados si los necesitas.
 
 El envío es secuencial, con una espera máxima de cinco segundos por conexión. Está pensado como base de aprendizaje para pocas conexiones. Un error de procesamiento del consumidor detiene su canal (`failure-strategy=fail`) y debe revisarse en los logs.
 
@@ -216,4 +230,4 @@ Docker ejecuta el test durante la construcción. Para ejecutarlo con Maven insta
 mvn -Dtest=TaskServiceTest test
 ```
 
-El único test utiliza JUnit y Mockito para editar una tarea y verificar su guardado. No inicia CDI ni verifica transacciones JTA reales; esas comprobaciones requieren el servidor.
+El único test utiliza JUnit y Mockito para editar una tarea, verificar su guardado y comprobar que delega únicamente la notificación de edición en un mock de `TaskEvents`. No inicia CDI ni verifica transacciones JTA reales; esas comprobaciones requieren el servidor.
